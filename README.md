@@ -14,6 +14,8 @@ The features we provide as of now are:
 As this project leverages Spark Structured Streaming's interfaces, and doesn't deal with internal
 (e.g. the structure of state file for HDFS state store), the performance may be suboptimal.
 
+For now, states from Streaming Aggregation query are only supported.
+
 ## Disclaimer
 
 This is more of a proof of concept implementation, might not something for production ready.
@@ -21,6 +23,10 @@ When you deal with writing state, you may want to backup your checkpoint with Ch
 
 The project is intended to deal with offline state, not against state which streaming query is running.
 Actually it can be possible, but state store provider in running query can purge old batches, which would produce error on here.
+
+## Supported versions
+
+Spark 2.4.x is supported: it only means you should link Spark 2.4.x when using this tool. That state formats across the Spark 2.x versions are supported.
 
 ## How to use
 
@@ -136,6 +142,7 @@ Please refer the test codes to see details on how to use.
 * Move to Maven (SBT is just used as quick start and I don't like that much)
 * Apply Scala Checkstyle
 * Optimization against HDFS state store (if we got some requests)
+* Support other kinds of state: Join, FlatMapGroupsWithState, etc.
 
 ## License
 
