@@ -132,7 +132,7 @@ CheckpointUtil.createSavePoint(spark, oldCpPath, newCpPath, newLastBatchId,
   excludeState = true)
 ```
 
-Please refer the test codes to see details on how to use.
+Please refer the [test codes](https://github.com/HeartSaVioR/spark-state-tool/tree/master/src/test/scala/org/apache/spark/sql/state) to see details on how to use.
 
 ## TODO
 
