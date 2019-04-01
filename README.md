@@ -14,14 +14,13 @@ The features we provide as of now are:
 As this project leverages Spark Structured Streaming's interfaces, and doesn't deal with internal
 (e.g. the structure of state file for HDFS state store), the performance may be suboptimal.
 
-## TODO
+## Disclaimer
 
-* Release and publish to Maven central
-* Sort out regarding license things: Copyright, License regarding dependencies, etc.
-* More documentation
-* Move to Maven (SBT is just used as quick start and I don't like that much)
-* Apply Scala Checkstyle
-* Optimization against HDFS state store (if we got some requests)
+This is more of a proof of concept implementation, might not something for production ready.
+When you deal with writing state, you may want to backup your checkpoint with CheckpointUtil and try it.
+
+The project is intended to deal with offline state, not against state which streaming query is running.
+Actually it can be possible, but state store provider in running query can purge old batches, which would produce error on here.
 
 ## How to use
 
@@ -128,5 +127,14 @@ CheckpointUtil.createSavePoint(spark, oldCpPath, newCpPath, newLastBatchId,
 ```
 
 Please refer the test codes to see details on how to use.
+
+## TODO
+
+* Release and publish to Maven central
+* Sort out regarding license things: Copyright, License regarding dependencies, etc.
+* More documentation
+* Move to Maven (SBT is just used as quick start and I don't like that much)
+* Apply Scala Checkstyle
+* Optimization against HDFS state store (if we got some requests)
 
 Thanks!
