@@ -17,7 +17,7 @@ As this project leverages Spark Structured Streaming's interfaces, and doesn't d
 ## Disclaimer
 
 This is more of a proof of concept implementation, might not something for production ready.
-When you deal with writing state, you may want to backup your checkpoint with CheckpointUtil and try it.
+When you deal with writing state, you may want to backup your checkpoint with CheckpointUtil and try it with backup.
 
 The project is intended to deal with offline state, not against state which streaming query is running.
 Actually it can be possible, but state store provider in running query can purge old batches, which would produce error on here.
