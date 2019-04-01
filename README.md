@@ -14,7 +14,7 @@ The features we provide as of now are:
 As this project leverages Spark Structured Streaming's interfaces, and doesn't deal with internal
 (e.g. the structure of state file for HDFS state store), the performance may be suboptimal.
 
-For now, states from Streaming Aggregation query are only supported.
+For now, states from Streaming Aggregation query (`groupBy().agg()`) are only supported.
 
 ## Disclaimer
 
