@@ -3,26 +3,21 @@ package org.apache.spark.sql.state
 import java.io.File
 
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.catalyst.streaming.InternalOutputModes.Update
-import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.execution.streaming.state.StateStore
 import org.apache.spark.sql.internal.SQLConf
-import org.apache.spark.sql.streaming.StreamTest
 import org.apache.spark.sql.types.{IntegerType, LongType, StructType}
 import org.scalatest.{Assertions, BeforeAndAfterAll}
 
-class StateStoreRelationSuite extends StreamTest with BeforeAndAfterAll with Assertions {
+class StateStoreRelationSuite extends StateStoreTest with BeforeAndAfterAll with Assertions {
   override def afterAll(): Unit = {
     super.afterAll()
     StateStore.stop()
   }
 
-  import testImplicits._
-
   test("reading state from simple aggregation - state format version 1") {
     withSQLConf(Seq(SQLConf.STREAMING_AGGREGATION_STATE_FORMAT_VERSION.key -> "1"): _*) {
       withTempDir { tempDir =>
-        runStreamingAggregationTestQuery(tempDir.getAbsolutePath)
+        runLargeDataStreamingAggregationQuery(tempDir.getAbsolutePath)
 
         val stateKeySchema = new StructType()
           .add("groupKey", IntegerType)
@@ -55,7 +50,18 @@ class StateStoreRelationSuite extends StreamTest with BeforeAndAfterAll with Ass
             .selectExpr("key.groupKey AS key_groupKey", "value.groupKey AS value_groupKey",
               "value.cnt AS value_cnt", "value.sum AS value_sum", "value.max AS value_max",
               "value.min AS value_min"),
-          Seq(Row(0, 0, 1, 2, 2, 2), Row(1, 1, 2, 6, 3, 3))
+          Seq(
+            Row(0, 0, 4, 60, 30, 0), // 0, 10, 20, 30
+            Row(1, 1, 4, 64, 31, 1), // 1, 11, 21, 31
+            Row(2, 2, 4, 68, 32, 2), // 2, 12, 22, 32
+            Row(3, 3, 4, 72, 33, 3), // 3, 13, 23, 33
+            Row(4, 4, 4, 76, 34, 4), // 4, 14, 24, 34
+            Row(5, 5, 4, 80, 35, 5), // 5, 15, 25, 35
+            Row(6, 6, 4, 84, 36, 6), // 6, 16, 26, 36
+            Row(7, 7, 4, 88, 37, 7), // 7, 17, 27, 37
+            Row(8, 8, 4, 92, 38, 8), // 8, 18, 28, 38
+            Row(9, 9, 4, 96, 39, 9) // 9, 19, 29, 39
+          )
         )
       }
     }
@@ -64,7 +70,7 @@ class StateStoreRelationSuite extends StreamTest with BeforeAndAfterAll with Ass
   test("reading state from simple aggregation - state format version 2") {
     withSQLConf(Seq(SQLConf.STREAMING_AGGREGATION_STATE_FORMAT_VERSION.key -> "2"): _*) {
       withTempDir { tempDir =>
-        runStreamingAggregationTestQuery(tempDir.getAbsolutePath)
+        runLargeDataStreamingAggregationQuery(tempDir.getAbsolutePath)
 
         val stateKeySchema = new StructType()
           .add("groupKey", IntegerType)
@@ -96,38 +102,20 @@ class StateStoreRelationSuite extends StreamTest with BeforeAndAfterAll with Ass
           stateReadDf
             .selectExpr("key.groupKey AS key_groupKey", "value.cnt AS value_cnt",
               "value.sum AS value_sum", "value.max AS value_max", "value.min AS value_min"),
-          Seq(Row(0, 1, 2, 2, 2), Row(1, 2, 6, 3, 3))
+          Seq(
+            Row(0, 4, 60, 30, 0), // 0, 10, 20, 30
+            Row(1, 4, 64, 31, 1), // 1, 11, 21, 31
+            Row(2, 4, 68, 32, 2), // 2, 12, 22, 32
+            Row(3, 4, 72, 33, 3), // 3, 13, 23, 33
+            Row(4, 4, 76, 34, 4), // 4, 14, 24, 34
+            Row(5, 4, 80, 35, 5), // 5, 15, 25, 35
+            Row(6, 4, 84, 36, 6), // 6, 16, 26, 36
+            Row(7, 4, 88, 37, 7), // 7, 17, 27, 37
+            Row(8, 4, 92, 38, 8), // 8, 18, 28, 38
+            Row(9, 4, 96, 39, 9) // 9, 19, 29, 39
+          )
         )
       }
     }
-  }
-
-  private def runStreamingAggregationTestQuery(checkpointRoot: String): Unit = {
-    import org.apache.spark.sql.functions._
-
-    val inputData = MemoryStream[Int]
-
-    val aggregated = inputData.toDF()
-      .selectExpr("value", "value % 2 AS groupKey")
-      .groupBy($"groupKey")
-      .agg(
-        count("*").as("cnt"),
-        sum("value").as("sum"),
-        max("value").as("max"),
-        min("value").as("min")
-      )
-      .as[(Int, Long, Long, Int, Int)]
-
-    testStream(aggregated, Update)(
-      StartStream(checkpointLocation = checkpointRoot),
-      AddData(inputData, 3),
-      CheckLastBatch((1, 1, 3, 3, 3)),
-      AddData(inputData, 3, 2),
-      CheckLastBatch((1, 2, 6, 3, 3), (0, 1, 2, 2, 2)),
-      StopStream,
-      StartStream(checkpointLocation = checkpointRoot),
-      AddData(inputData, 3, 2, 1),
-      CheckLastBatch((1, 4, 10, 3, 1), (0, 2, 4, 2, 2))
-    )
   }
 }
