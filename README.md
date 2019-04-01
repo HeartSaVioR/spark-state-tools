@@ -18,8 +18,8 @@ For now, states from Streaming Aggregation query are only supported.
 
 ## Disclaimer
 
-This is more of a proof of concept implementation, might not something for production ready.
-When you deal with writing state, you may want to backup your checkpoint with CheckpointUtil and try it with backup.
+This is something more of a proof of concept implementation, might not be something for production ready.
+When you deal with writing state, you may want to backup your checkpoint with CheckpointUtil and try doing it with savepoint.
 
 The project is intended to deal with offline state, not against state which streaming query is running.
 Actually it can be possible, but state store provider in running query can purge old batches, which would produce error on here.
