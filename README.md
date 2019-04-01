@@ -134,16 +134,6 @@ CheckpointUtil.createSavePoint(spark, oldCpPath, newCpPath, newLastBatchId,
 
 Please refer the [test codes](https://github.com/HeartSaVioR/spark-state-tool/tree/master/src/test/scala/org/apache/spark/sql/state) to see details on how to use.
 
-## TODO
-
-* Release and publish to Maven central
-* Sort out regarding license things: Copyright, License regarding dependencies, etc.
-* More documentation
-* Move to Maven (SBT is just used as quick start and I don't like that much)
-* Apply Scala Checkstyle
-* Optimization against HDFS state store (if we got some requests)
-* Support other kinds of state: Join, FlatMapGroupsWithState, etc.
-
 ## License
 
 Copyright 2019 Jungtaek Lim "<kabhwan@gmail.com>"
