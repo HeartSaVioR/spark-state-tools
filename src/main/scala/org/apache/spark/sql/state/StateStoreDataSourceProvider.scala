@@ -7,12 +7,12 @@ import org.apache.spark.sql.types.{DataType, StructType}
 
 // TODO: read schema of key and value from metadata of state (requires SPARK-27237)
 //  and change SchemaRelationProvider to RelationProvider to receive schema optionally
-class DefaultSource
+class StateStoreDataSourceProvider
   extends DataSourceRegister
   with SchemaRelationProvider
   with CreatableRelationProvider {
 
-  import DefaultSource._
+  import StateStoreDataSourceProvider._
 
   override def shortName(): String = "state"
 
@@ -51,22 +51,6 @@ class DefaultSource
     new StateStoreRelation(sqlContext.sparkSession, keySchema,
       valueSchema, checkpointLocation, batchId, operatorId,
       storeName, parameters)
-  }
-
-  private def isValidSchema(schema: StructType): Boolean = {
-    if (schema.fieldNames.toSeq != Seq("key", "value")) {
-      false
-    } else if (!getSchemaAsDataType(schema, "key").isInstanceOf[StructType]) {
-      false
-    } else if (!getSchemaAsDataType(schema, "value").isInstanceOf[StructType]) {
-      false
-    } else {
-      true
-    }
-  }
-
-  private def getSchemaAsDataType(schema: StructType, fieldName: String): DataType = {
-    schema(schema.getFieldIndex(fieldName).get).dataType
   }
 
   override def createRelation(
@@ -119,9 +103,25 @@ class DefaultSource
     // just return the same as we just update it
     createRelation(sqlContext, parameters, data.schema)
   }
+
+  private def isValidSchema(schema: StructType): Boolean = {
+    if (schema.fieldNames.toSeq != Seq("key", "value")) {
+      false
+    } else if (!getSchemaAsDataType(schema, "key").isInstanceOf[StructType]) {
+      false
+    } else if (!getSchemaAsDataType(schema, "value").isInstanceOf[StructType]) {
+      false
+    } else {
+      true
+    }
+  }
+
+  private def getSchemaAsDataType(schema: StructType, fieldName: String): DataType = {
+    schema(schema.getFieldIndex(fieldName).get).dataType
+  }
 }
 
-object DefaultSource {
+object StateStoreDataSourceProvider {
   val PARAM_CHECKPOINT_LOCATION = "checkpointLocation"
   val PARAM_BATCH_ID = "batchId"
   val PARAM_OPERATOR_ID = "operatorId"

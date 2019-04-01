@@ -12,7 +12,7 @@ resolvers ++= List("Local Maven Repository" at "file:///" + Path.userHome.absolu
 libraryDependencies += "org.rogach" %% "scallop" % "3.1.2"
 
 val sparkVersion = "2.4.0"
-val scopeForSparkArtifacts = "compile"
+val scopeForSparkArtifacts = "provided"
 
 libraryDependencies += "org.apache.spark" % "spark-sql_2.11" % sparkVersion % scopeForSparkArtifacts
 
@@ -38,6 +38,7 @@ assemblyMergeStrategy in assembly := {
   case "META-INF/ECLIPSEF.RSA" => MergeStrategy.last
   case "META-INF/mailcap" => MergeStrategy.last
   case "META-INF/mimetypes.default" => MergeStrategy.last
+  case "META-INF/services/org.apache.spark.sql.sources.DataSourceRegister" => MergeStrategy.concat
   case "plugin.properties" => MergeStrategy.last
   case "log4j.properties" => MergeStrategy.last
   // below is due to Apache Arrow...
@@ -54,3 +55,5 @@ target in assembly := file("build")
 assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
 
 assemblyJarName in assembly := s"${name.value}.jar"
+
+concurrentRestrictions in Global += Tags.limit(Tags.Test, 1)

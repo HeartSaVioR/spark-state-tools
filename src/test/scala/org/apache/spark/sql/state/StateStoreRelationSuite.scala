@@ -34,13 +34,12 @@ class StateStoreRelationSuite extends StateStoreTest with BeforeAndAfterAll with
           .add("value", stateValueSchema)
 
         val stateReadDf = spark.read
-          // FIXME: why it is not registered by default?
-          .format("org.apache.spark.sql.state")
+          .format("state")
           .schema(stateSchema)
-          .option(DefaultSource.PARAM_CHECKPOINT_LOCATION,
+          .option(StateStoreDataSourceProvider.PARAM_CHECKPOINT_LOCATION,
             new File(tempDir, "state").getAbsolutePath)
-          .option(DefaultSource.PARAM_BATCH_ID, "2")
-          .option(DefaultSource.PARAM_OPERATOR_ID, "0")
+          .option(StateStoreDataSourceProvider.PARAM_BATCH_ID, "2")
+          .option(StateStoreDataSourceProvider.PARAM_OPERATOR_ID, "0")
           .load()
 
         stateReadDf.printSchema()
@@ -87,13 +86,12 @@ class StateStoreRelationSuite extends StateStoreTest with BeforeAndAfterAll with
           .add("value", stateValueSchema)
 
         val stateReadDf = spark.read
-          // FIXME: why it is not registered by default?
-          .format("org.apache.spark.sql.state")
+          .format("state")
           .schema(stateSchema)
-          .option(DefaultSource.PARAM_CHECKPOINT_LOCATION,
+          .option(StateStoreDataSourceProvider.PARAM_CHECKPOINT_LOCATION,
             new File(tempDir, "state").getAbsolutePath)
-          .option(DefaultSource.PARAM_BATCH_ID, "2")
-          .option(DefaultSource.PARAM_OPERATOR_ID, "0")
+          .option(StateStoreDataSourceProvider.PARAM_BATCH_ID, "2")
+          .option(StateStoreDataSourceProvider.PARAM_OPERATOR_ID, "0")
           .load()
 
         stateReadDf.printSchema()

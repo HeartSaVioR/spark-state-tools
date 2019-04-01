@@ -9,10 +9,6 @@ import org.apache.spark.sql.types.{DoubleType, IntegerType, LongType, StructFiel
 import org.scalatest.{Assertions, BeforeAndAfterAll}
 
 class StateStoreWriteSuite extends StateStoreTest with BeforeAndAfterAll with Assertions {
-  override protected def beforeAll(): Unit = {
-    super.beforeAll()
-  }
-
   override def afterAll(): Unit = {
     super.afterAll()
     StateStore.stop()
@@ -20,7 +16,7 @@ class StateStoreWriteSuite extends StateStoreTest with BeforeAndAfterAll with As
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    spark.sql("drop table if exists tbl")
+    sql("drop table if exists tbl")
   }
 
   test("rescale state from streaming aggregation - state format version 1") {
@@ -43,25 +39,23 @@ class StateStoreWriteSuite extends StateStoreTest with BeforeAndAfterAll with As
           .add("value", stateValueSchema)
 
         val stateReadDf = spark.read
-          // FIXME: why it is not registered by default?
-          .format("org.apache.spark.sql.state")
+          .format("state")
           .schema(stateSchema)
-          .option(DefaultSource.PARAM_CHECKPOINT_LOCATION,
+          .option(StateStoreDataSourceProvider.PARAM_CHECKPOINT_LOCATION,
             new File(tempDir, "state").getAbsolutePath)
-          .option(DefaultSource.PARAM_BATCH_ID, "2")
-          .option(DefaultSource.PARAM_OPERATOR_ID, "0")
+          .option(StateStoreDataSourceProvider.PARAM_BATCH_ID, "2")
+          .option(StateStoreDataSourceProvider.PARAM_OPERATOR_ID, "0")
           .load()
 
         val expectedRows = stateReadDf.collect()
 
         stateReadDf.write
-          // FIXME: why it is not registered by default?
-          .format("org.apache.spark.sql.state")
-          .option(DefaultSource.PARAM_CHECKPOINT_LOCATION,
+          .format("state")
+          .option(StateStoreDataSourceProvider.PARAM_CHECKPOINT_LOCATION,
             new File(tempDir, "state2").getAbsolutePath)
-          .option(DefaultSource.PARAM_BATCH_ID, "2")
-          .option(DefaultSource.PARAM_OPERATOR_ID, "0")
-          .option(DefaultSource.PARAM_NEW_PARTITIONS, "20")
+          .option(StateStoreDataSourceProvider.PARAM_BATCH_ID, "2")
+          .option(StateStoreDataSourceProvider.PARAM_OPERATOR_ID, "0")
+          .option(StateStoreDataSourceProvider.PARAM_NEW_PARTITIONS, "20")
           .saveAsTable("tbl")
 
         // verify write-and-read works
@@ -69,13 +63,12 @@ class StateStoreWriteSuite extends StateStoreTest with BeforeAndAfterAll with As
 
         // read again
         val stateReadDf2 = spark.read
-          // FIXME: why it is not registered by default?
-          .format("org.apache.spark.sql.state")
+          .format("state")
           .schema(stateSchema)
-          .option(DefaultSource.PARAM_CHECKPOINT_LOCATION,
+          .option(StateStoreDataSourceProvider.PARAM_CHECKPOINT_LOCATION,
             new File(tempDir, "state2").getAbsolutePath)
-          .option(DefaultSource.PARAM_BATCH_ID, "2")
-          .option(DefaultSource.PARAM_OPERATOR_ID, "0")
+          .option(StateStoreDataSourceProvider.PARAM_BATCH_ID, "2")
+          .option(StateStoreDataSourceProvider.PARAM_OPERATOR_ID, "0")
           .load()
 
         checkAnswer(stateReadDf2, expectedRows)
@@ -104,25 +97,23 @@ class StateStoreWriteSuite extends StateStoreTest with BeforeAndAfterAll with As
           .add("value", stateValueSchema)
 
         val stateReadDf = spark.read
-          // FIXME: why it is not registered by default?
-          .format("org.apache.spark.sql.state")
+          .format("state")
           .schema(stateSchema)
-          .option(DefaultSource.PARAM_CHECKPOINT_LOCATION,
+          .option(StateStoreDataSourceProvider.PARAM_CHECKPOINT_LOCATION,
             new File(tempDir, "state").getAbsolutePath)
-          .option(DefaultSource.PARAM_BATCH_ID, "2")
-          .option(DefaultSource.PARAM_OPERATOR_ID, "0")
+          .option(StateStoreDataSourceProvider.PARAM_BATCH_ID, "2")
+          .option(StateStoreDataSourceProvider.PARAM_OPERATOR_ID, "0")
           .load()
 
         val expectedRows = stateReadDf.collect()
 
         stateReadDf.write
-          // FIXME: why it is not registered by default?
-          .format("org.apache.spark.sql.state")
-          .option(DefaultSource.PARAM_CHECKPOINT_LOCATION,
+          .format("state")
+          .option(StateStoreDataSourceProvider.PARAM_CHECKPOINT_LOCATION,
             new File(tempDir, "state2").getAbsolutePath)
-          .option(DefaultSource.PARAM_BATCH_ID, "2")
-          .option(DefaultSource.PARAM_OPERATOR_ID, "0")
-          .option(DefaultSource.PARAM_NEW_PARTITIONS, "20")
+          .option(StateStoreDataSourceProvider.PARAM_BATCH_ID, "2")
+          .option(StateStoreDataSourceProvider.PARAM_OPERATOR_ID, "0")
+          .option(StateStoreDataSourceProvider.PARAM_NEW_PARTITIONS, "20")
           .saveAsTable("tbl")
 
         // verify write-and-read works
@@ -130,13 +121,12 @@ class StateStoreWriteSuite extends StateStoreTest with BeforeAndAfterAll with As
 
         // read again
         val stateReadDf2 = spark.read
-          // FIXME: why it is not registered by default?
-          .format("org.apache.spark.sql.state")
+          .format("state")
           .schema(stateSchema)
-          .option(DefaultSource.PARAM_CHECKPOINT_LOCATION,
+          .option(StateStoreDataSourceProvider.PARAM_CHECKPOINT_LOCATION,
             new File(tempDir, "state2").getAbsolutePath)
-          .option(DefaultSource.PARAM_BATCH_ID, "2")
-          .option(DefaultSource.PARAM_OPERATOR_ID, "0")
+          .option(StateStoreDataSourceProvider.PARAM_BATCH_ID, "2")
+          .option(StateStoreDataSourceProvider.PARAM_OPERATOR_ID, "0")
           .load()
 
         checkAnswer(stateReadDf2, expectedRows)
@@ -165,13 +155,12 @@ class StateStoreWriteSuite extends StateStoreTest with BeforeAndAfterAll with As
           .add("value", stateValueSchema)
 
         val stateReadDf = spark.read
-          // FIXME: why it is not registered by default?
-          .format("org.apache.spark.sql.state")
+          .format("state")
           .schema(stateSchema)
-          .option(DefaultSource.PARAM_CHECKPOINT_LOCATION,
+          .option(StateStoreDataSourceProvider.PARAM_CHECKPOINT_LOCATION,
             new File(tempDir, "state").getAbsolutePath)
-          .option(DefaultSource.PARAM_BATCH_ID, "2")
-          .option(DefaultSource.PARAM_OPERATOR_ID, "0")
+          .option(StateStoreDataSourceProvider.PARAM_BATCH_ID, "2")
+          .option(StateStoreDataSourceProvider.PARAM_OPERATOR_ID, "0")
           .load()
 
         // rows: (1, 2, 6, 3, 3), (0, 1, 2, 2, 2)
@@ -190,13 +179,12 @@ class StateStoreWriteSuite extends StateStoreTest with BeforeAndAfterAll with As
         evolutionDf.printSchema()
 
         evolutionDf.write
-          // FIXME: why it is not registered by default?
-          .format("org.apache.spark.sql.state")
-          .option(DefaultSource.PARAM_CHECKPOINT_LOCATION,
+          .format("state")
+          .option(StateStoreDataSourceProvider.PARAM_CHECKPOINT_LOCATION,
             new File(tempDir, "state2").getAbsolutePath)
-          .option(DefaultSource.PARAM_BATCH_ID, "2")
-          .option(DefaultSource.PARAM_OPERATOR_ID, "0")
-          .option(DefaultSource.PARAM_NEW_PARTITIONS, "20")
+          .option(StateStoreDataSourceProvider.PARAM_BATCH_ID, "2")
+          .option(StateStoreDataSourceProvider.PARAM_OPERATOR_ID, "0")
+          .option(StateStoreDataSourceProvider.PARAM_NEW_PARTITIONS, "20")
           .saveAsTable("tbl")
 
         // verify write-and-read works
@@ -215,13 +203,12 @@ class StateStoreWriteSuite extends StateStoreTest with BeforeAndAfterAll with As
 
         // read again
         val stateReadDf2 = spark.read
-          // FIXME: why it is not registered by default?
-          .format("org.apache.spark.sql.state")
+          .format("state")
           .schema(newStateSchema)
-          .option(DefaultSource.PARAM_CHECKPOINT_LOCATION,
+          .option(StateStoreDataSourceProvider.PARAM_CHECKPOINT_LOCATION,
             new File(tempDir, "state2").getAbsolutePath)
-          .option(DefaultSource.PARAM_BATCH_ID, "2")
-          .option(DefaultSource.PARAM_OPERATOR_ID, "0")
+          .option(StateStoreDataSourceProvider.PARAM_BATCH_ID, "2")
+          .option(StateStoreDataSourceProvider.PARAM_OPERATOR_ID, "0")
           .load()
 
         checkAnswer(stateReadDf2, expectedRows)

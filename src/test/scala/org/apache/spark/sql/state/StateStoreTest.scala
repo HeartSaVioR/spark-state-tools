@@ -1,10 +1,8 @@
 package org.apache.spark.sql.state
 
-import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.catalyst.streaming.InternalOutputModes.Update
 import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.execution.streaming.state.StateStore
-import org.apache.spark.sql.functions.{count, max, min, sum}
 import org.apache.spark.sql.streaming.StreamTest
 
 trait StateStoreTest extends StreamTest {
