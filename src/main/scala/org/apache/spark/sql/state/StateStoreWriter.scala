@@ -18,7 +18,7 @@ class StateStoreWriter(
     keySchema: StructType,
     valueSchema: StructType,
     stateCheckpointLocation: String,
-    batchId: Int,
+    version: Int,
     operatorId: Int,
     storeName: String,
     newPartitions: Int) {
@@ -53,7 +53,7 @@ class StateStoreWriter(
       .queryExecution
       .toRdd
       .foreachPartition(
-        writeFn(resolvedCpLocation, batchId, operatorId, storeName, keySchema, valueSchema,
+        writeFn(resolvedCpLocation, version, operatorId, storeName, keySchema, valueSchema,
           storeConf, hadoopConfBroadcast, queryId))
   }
 }
@@ -62,7 +62,7 @@ object StateStoreWriter {
 
   def writeFn(
       resolvedCpLocation: String,
-      batchId: Int,
+      version: Int,
       operatorId: Int,
       storeName: String,
       keySchema: StructType,
@@ -79,12 +79,13 @@ object StateStoreWriter {
     val storeProviderId = StateStoreProviderId(storeId, queryId)
 
     // fill empty state until target version - 1
-    (0 until batchId - 1).map { id =>
+    (0 until version - 1).map { id =>
       val store = StateStore.get(storeProviderId, keySchema, valueSchema, None, id, storeConf, hadoopConf)
       store.commit()
     }
 
-    val store = StateStore.get(storeProviderId, keySchema, valueSchema, None, batchId - 1, storeConf, hadoopConf)
+    // all states will be written at version
+    val store = StateStore.get(storeProviderId, keySchema, valueSchema, None, version - 1, storeConf, hadoopConf)
     iter.foreach { row =>
       store.put(
         row.getStruct(0, keySchema.fields.length).asInstanceOf[UnsafeRow],

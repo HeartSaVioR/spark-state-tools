@@ -5,10 +5,9 @@ import java.io.File
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.execution.streaming.state.StateStore
 import org.apache.spark.sql.internal.SQLConf
-import org.apache.spark.sql.types.{IntegerType, LongType, StructType}
 import org.scalatest.{Assertions, BeforeAndAfterAll}
 
-class StateStoreRelationSuite extends StateStoreTest with BeforeAndAfterAll with Assertions {
+class StateStoreStreamingAggregationReadSuite extends StateStoreTest with BeforeAndAfterAll with Assertions {
   override def afterAll(): Unit = {
     super.afterAll()
     StateStore.stop()
@@ -19,27 +18,18 @@ class StateStoreRelationSuite extends StateStoreTest with BeforeAndAfterAll with
       withTempDir { tempDir =>
         runLargeDataStreamingAggregationQuery(tempDir.getAbsolutePath)
 
-        val stateKeySchema = new StructType()
-          .add("groupKey", IntegerType)
+        val stateSchema = getSchemaForStreamingAggregationQuery(1)
 
-        val stateValueSchema = new StructType()
-          .add("groupKey", IntegerType)
-          .add("cnt", LongType)
-          .add("sum", LongType)
-          .add("max", IntegerType)
-          .add("min", IntegerType)
-
-        val stateSchema = new StructType()
-          .add("key", stateKeySchema)
-          .add("value", stateValueSchema)
+        val operatorId = 0
+        val batchId = 1
 
         val stateReadDf = spark.read
           .format("state")
           .schema(stateSchema)
           .option(StateStoreDataSourceProvider.PARAM_CHECKPOINT_LOCATION,
             new File(tempDir, "state").getAbsolutePath)
-          .option(StateStoreDataSourceProvider.PARAM_BATCH_ID, "2")
-          .option(StateStoreDataSourceProvider.PARAM_OPERATOR_ID, "0")
+          .option(StateStoreDataSourceProvider.PARAM_VERSION, batchId + 1)
+          .option(StateStoreDataSourceProvider.PARAM_OPERATOR_ID, operatorId)
           .load()
 
         stateReadDf.printSchema()
@@ -71,27 +61,18 @@ class StateStoreRelationSuite extends StateStoreTest with BeforeAndAfterAll with
       withTempDir { tempDir =>
         runLargeDataStreamingAggregationQuery(tempDir.getAbsolutePath)
 
-        val stateKeySchema = new StructType()
-          .add("groupKey", IntegerType)
+        val stateSchema = getSchemaForStreamingAggregationQuery(2)
 
-        // key part not included in state format version 2
-        val stateValueSchema = new StructType()
-          .add("cnt", LongType)
-          .add("sum", LongType)
-          .add("max", IntegerType)
-          .add("min", IntegerType)
-
-        val stateSchema = new StructType()
-          .add("key", stateKeySchema)
-          .add("value", stateValueSchema)
+        val operatorId = 0
+        val batchId = 1
 
         val stateReadDf = spark.read
           .format("state")
           .schema(stateSchema)
           .option(StateStoreDataSourceProvider.PARAM_CHECKPOINT_LOCATION,
             new File(tempDir, "state").getAbsolutePath)
-          .option(StateStoreDataSourceProvider.PARAM_BATCH_ID, "2")
-          .option(StateStoreDataSourceProvider.PARAM_OPERATOR_ID, "0")
+          .option(StateStoreDataSourceProvider.PARAM_VERSION, batchId + 1)
+          .option(StateStoreDataSourceProvider.PARAM_OPERATOR_ID, operatorId)
           .load()
 
         stateReadDf.printSchema()

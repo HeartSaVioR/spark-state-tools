@@ -1,9 +1,13 @@
 package org.apache.spark.sql.state
 
+import java.io.File
+
 import org.apache.spark.sql.catalyst.streaming.InternalOutputModes.Update
 import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.execution.streaming.state.StateStore
 import org.apache.spark.sql.streaming.StreamTest
+import org.apache.spark.sql.types.{IntegerType, LongType, StructType}
+import org.apache.spark.util.Utils
 
 trait StateStoreTest extends StreamTest {
   import testImplicits._
@@ -11,6 +15,38 @@ trait StateStoreTest extends StreamTest {
   override def afterAll(): Unit = {
     super.afterAll()
     StateStore.stop()
+  }
+
+  protected def withTempCheckpoints(body: (File, File) => Unit) {
+    val src = Utils.createTempDir(namePrefix = "streaming.old")
+    val tmp = Utils.createTempDir(namePrefix = "streaming.new")
+    try {
+      body(src, tmp)
+    } finally {
+      Utils.deleteRecursively(src)
+      Utils.deleteRecursively(tmp)
+    }
+  }
+
+  protected def getSchemaForStreamingAggregationQuery(formatVersion: Int) : StructType = {
+    val stateKeySchema = new StructType()
+      .add("groupKey", IntegerType)
+
+    var stateValueSchema = formatVersion match {
+      case 1 => new StructType().add("groupKey", IntegerType)
+      case 2 => new StructType()
+      case v => throw new IllegalArgumentException(s"Not valid format version $v")
+    }
+
+    stateValueSchema = stateValueSchema
+      .add("cnt", LongType)
+      .add("sum", LongType)
+      .add("max", IntegerType)
+      .add("min", IntegerType)
+
+    new StructType()
+      .add("key", stateKeySchema)
+      .add("value", stateValueSchema)
   }
 
   protected def runSmallDataStreamingAggregationQuery(
@@ -32,12 +68,15 @@ trait StateStoreTest extends StreamTest {
 
     testStream(aggregated, Update)(
       StartStream(checkpointLocation = checkpointRoot),
+      // batch 0
       AddData(inputData, 3),
       CheckLastBatch((1, 1, 3, 3, 3)),
+      // batch 1
       AddData(inputData, 3, 2),
       CheckLastBatch((1, 2, 6, 3, 3), (0, 1, 2, 2, 2)),
       StopStream,
       StartStream(checkpointLocation = checkpointRoot),
+      // batch 2
       AddData(inputData, 3, 2, 1),
       CheckLastBatch((1, 4, 10, 3, 1), (0, 2, 4, 2, 2))
     )
@@ -63,7 +102,7 @@ trait StateStoreTest extends StreamTest {
     // check with more data - leverage full partitions
     testStream(aggregated, Update)(
       StartStream(checkpointLocation = checkpointRoot),
-      // batch 1
+      // batch 0
       AddData(inputData, 0 until 20: _*),
       CheckLastBatch(
         (0, 2, 10, 10, 0), // 0, 10
@@ -77,7 +116,7 @@ trait StateStoreTest extends StreamTest {
         (8, 2, 26, 18, 8), // 8, 18
         (9, 2, 28, 19, 9) // 9, 19
       ),
-      // batch 2
+      // batch 1
       AddData(inputData, 20 until 40: _*),
       CheckLastBatch(
         (0, 4, 60, 30, 0), // 0, 10, 20, 30
@@ -93,7 +132,7 @@ trait StateStoreTest extends StreamTest {
       ),
       StopStream,
       StartStream(checkpointLocation = checkpointRoot),
-      // batch 3
+      // batch 2
       AddData(inputData, 0, 1, 2),
       CheckLastBatch(
         (0, 5, 60, 30, 0), // 0, 10, 20, 30, 0

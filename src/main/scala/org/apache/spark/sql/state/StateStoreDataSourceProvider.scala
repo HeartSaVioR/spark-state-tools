@@ -33,9 +33,9 @@ class StateStoreDataSourceProvider
       case None => throw new AnalysisException(s"'$PARAM_CHECKPOINT_LOCATION' must be specified.")
     }
 
-    val batchId = parameters.get(PARAM_BATCH_ID) match {
-      case Some(batch) => batch.toInt
-      case None => throw new AnalysisException(s"'$PARAM_BATCH_ID' must be specified.")
+    val version = parameters.get(PARAM_VERSION) match {
+      case Some(ver) => ver.toInt
+      case None => throw new AnalysisException(s"'$PARAM_VERSION' must be specified.")
     }
 
     val operatorId = parameters.get(PARAM_OPERATOR_ID) match {
@@ -49,7 +49,7 @@ class StateStoreDataSourceProvider
     }
 
     new StateStoreRelation(sqlContext.sparkSession, keySchema,
-      valueSchema, checkpointLocation, batchId, operatorId,
+      valueSchema, checkpointLocation, version, operatorId,
       storeName, parameters)
   }
 
@@ -69,9 +69,9 @@ class StateStoreDataSourceProvider
       case None => throw new AnalysisException(s"'$PARAM_CHECKPOINT_LOCATION' must be specified.")
     }
 
-    val batchId = parameters.get(PARAM_BATCH_ID) match {
-      case Some(batch) => batch.toInt
-      case None => throw new AnalysisException(s"'$PARAM_BATCH_ID' must be specified.")
+    val version = parameters.get(PARAM_VERSION) match {
+      case Some(ver) => ver.toInt
+      case None => throw new AnalysisException(s"'$PARAM_VERSION' must be specified.")
     }
 
     val operatorId = parameters.get(PARAM_OPERATOR_ID) match {
@@ -98,7 +98,7 @@ class StateStoreDataSourceProvider
     val valueSchema = getSchemaAsDataType(data.schema, "value").asInstanceOf[StructType]
 
     new StateStoreWriter(sqlContext.sparkSession, data, keySchema, valueSchema, checkpointLocation,
-      batchId, operatorId, storeName, newPartitions).write()
+      version, operatorId, storeName, newPartitions).write()
 
     // just return the same as we just update it
     createRelation(sqlContext, parameters, data.schema)
@@ -123,7 +123,7 @@ class StateStoreDataSourceProvider
 
 object StateStoreDataSourceProvider {
   val PARAM_CHECKPOINT_LOCATION = "checkpointLocation"
-  val PARAM_BATCH_ID = "batchId"
+  val PARAM_VERSION = "version"
   val PARAM_OPERATOR_ID = "operatorId"
   val PARAM_STORE_NAME = "storeName"
   val PARAM_NEW_PARTITIONS = "newPartitions"
