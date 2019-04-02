@@ -32,3 +32,11 @@ jobs:
 
       # run tests!
       - run: mvn -q clean checkstyle:check scalastyle:check package
+
+      - store_artifacts:
+          path: ~/repo/target/scalastyle-output.xml
+          destination: artifact-file
+
+      - store_artifacts:
+          path: ~/repo/target/unit-tests.log
+          destination: artifact-file
