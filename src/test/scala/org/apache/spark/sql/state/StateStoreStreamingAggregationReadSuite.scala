@@ -39,7 +39,7 @@ class StateStoreStreamingAggregationReadSuite
       withTempDir { tempDir =>
         runLargeDataStreamingAggregationQuery(tempDir.getAbsolutePath)
 
-        val stateSchema = getSchemaForStreamingAggregationQuery(1)
+        val stateSchema = getSchemaForLargeDataStreamingAggregationQuery(1)
 
         val operatorId = 0
         val batchId = 1
@@ -82,7 +82,7 @@ class StateStoreStreamingAggregationReadSuite
       withTempDir { tempDir =>
         runLargeDataStreamingAggregationQuery(tempDir.getAbsolutePath)
 
-        val stateSchema = getSchemaForStreamingAggregationQuery(2)
+        val stateSchema = getSchemaForLargeDataStreamingAggregationQuery(2)
 
         val operatorId = 0
         val batchId = 1
@@ -113,6 +113,45 @@ class StateStoreStreamingAggregationReadSuite
             Row(7, 4, 88, 37, 7), // 7, 17, 27, 37
             Row(8, 4, 92, 38, 8), // 8, 18, 28, 38
             Row(9, 4, 96, 39, 9) // 9, 19, 29, 39
+          )
+        )
+      }
+    }
+  }
+
+  test("reading state from simple aggregation - composite key") {
+    withSQLConf(Seq(SQLConf.STREAMING_AGGREGATION_STATE_FORMAT_VERSION.key -> "2"): _*) {
+      withTempDir { tempDir =>
+        runCompositeKeyStreamingAggregationQuery(tempDir.getAbsolutePath)
+
+        val stateSchema = getSchemaForCompositeKeyStreamingAggregationQuery(2)
+
+        val operatorId = 0
+        val batchId = 1
+
+        val stateReadDf = spark.read
+          .format("state")
+          .schema(stateSchema)
+          .option(StateStoreDataSourceProvider.PARAM_CHECKPOINT_LOCATION,
+            new File(tempDir, "state").getAbsolutePath)
+          .option(StateStoreDataSourceProvider.PARAM_VERSION, batchId + 1)
+          .option(StateStoreDataSourceProvider.PARAM_OPERATOR_ID, operatorId)
+          .load()
+
+        logInfo(s"Schema: ${stateReadDf.schema.treeString}")
+
+        checkAnswer(
+          stateReadDf
+            .selectExpr("key.groupKey AS key_groupKey", "key.fruit AS key_fruit",
+              "value.cnt AS value_cnt", "value.sum AS value_sum", "value.max AS value_max",
+              "value.min AS value_min"),
+          Seq(
+            Row(0, "Apple", 2, 6, 6, 0),
+            Row(1, "Banana", 2, 8, 7, 1),
+            Row(0, "Strawberry", 2, 10, 8, 2),
+            Row(1, "Apple", 2, 12, 9, 3),
+            Row(0, "Banana", 2, 14, 10, 4),
+            Row(1, "Strawberry", 1, 5, 5, 5)
           )
         )
       }
