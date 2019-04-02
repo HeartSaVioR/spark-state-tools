@@ -2,7 +2,10 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/openjdk:8-jdk
+      # below workaround is necessary to avoid below error on Maven
+      # Error: Could not find or load main class org.apache.maven.surefire.booter.ForkedBooter
+      # https://discuss.circleci.com/t/circleci-build-failure-on-openjdk-image/26104/9
+      - image: circleci/openjdk:8u171-jdk
 
     working_directory: ~/repo
 
