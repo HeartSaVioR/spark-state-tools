@@ -1,24 +1,27 @@
-/**
-  * Copyright 2019 Jungtaek Lim "<kabhwan@gmail.com>"
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  * http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  */
+/*
+ * Copyright 2019 Jungtaek Lim "<kabhwan@gmail.com>"
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.spark.sql.state
 
 import java.util.UUID
 
+import scala.util.Try
+
 import org.apache.hadoop.fs.{Path, PathFilter}
+
 import org.apache.spark.{Partition, TaskContext}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
@@ -26,8 +29,6 @@ import org.apache.spark.sql.catalyst.expressions.UnsafeRow
 import org.apache.spark.sql.execution.streaming.state.{StateStore, StateStoreConf, StateStoreId, StateStoreProviderId}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.util.SerializableConfiguration
-
-import scala.util.Try
 
 class StateStorePartition(
     val partition: Int,
@@ -93,7 +94,8 @@ class StateStoreReaderRDD(
       // assuming no same number - they're directories hence no same name
       val head = partitionNums.head
       val tail = partitionNums(partitionNums.length - 1)
-      assert((tail - head + 1) == partitionNums.length, s"No continuous partitions in state: $partitionNums")
+      assert((tail - head + 1) == partitionNums.length,
+        s"No continuous partitions in state: $partitionNums")
 
       partitionNums.map(pn => new StateStorePartition(pn, queryId)).toArray
     }
