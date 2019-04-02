@@ -1,4 +1,6 @@
-# Spark State Tools
+# Spark State Tools 
+
+[![CircleCI](https://circleci.com/gh/HeartSaVioR/spark-state-tool/tree/master.svg?style=svg)](https://circleci.com/gh/HeartSaVioR/spark-state-tool/tree/master)
 
 Spark State Tools provides features about offline manipulation of Structured Streaming state on existing query.
 
