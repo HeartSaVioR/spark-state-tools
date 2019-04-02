@@ -22,7 +22,7 @@ import org.apache.spark.sql.catalyst.streaming.InternalOutputModes.Update
 import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.execution.streaming.state.StateStore
 import org.apache.spark.sql.streaming.StreamTest
-import org.apache.spark.sql.types.{IntegerType, LongType, StructType}
+import org.apache.spark.sql.types.{IntegerType, LongType, StringType, StructType}
 import org.apache.spark.util.Utils
 
 trait StateStoreTest extends StreamTest {
@@ -44,7 +44,7 @@ trait StateStoreTest extends StreamTest {
     }
   }
 
-  protected def getSchemaForStreamingAggregationQuery(formatVersion: Int) : StructType = {
+  protected def getSchemaForLargeDataStreamingAggregationQuery(formatVersion: Int): StructType = {
     val stateKeySchema = new StructType()
       .add("groupKey", IntegerType)
 
@@ -65,36 +65,78 @@ trait StateStoreTest extends StreamTest {
       .add("value", stateValueSchema)
   }
 
-  protected def runSmallDataStreamingAggregationQuery(
+  protected def getSchemaForCompositeKeyStreamingAggregationQuery(
+      formatVersion: Int): StructType = {
+    val stateKeySchema = new StructType()
+      .add("groupKey", IntegerType)
+      .add("fruit", StringType)
+
+    var stateValueSchema = formatVersion match {
+      case 1 => new StructType().add("groupKey", IntegerType).add("fruit", StringType)
+      case 2 => new StructType()
+      case v => throw new IllegalArgumentException(s"Not valid format version $v")
+    }
+
+    stateValueSchema = stateValueSchema
+      .add("cnt", LongType)
+      .add("sum", LongType)
+      .add("max", IntegerType)
+      .add("min", IntegerType)
+
+    new StructType()
+      .add("key", stateKeySchema)
+      .add("value", stateValueSchema)
+  }
+
+  protected def runCompositeKeyStreamingAggregationQuery(
       checkpointRoot: String): Unit = {
     import org.apache.spark.sql.functions._
 
     val inputData = MemoryStream[Int]
 
     val aggregated = inputData.toDF()
-      .selectExpr("value", "value % 2 AS groupKey")
-      .groupBy($"groupKey")
+      .selectExpr("value", "value % 2 AS groupKey",
+        "(CASE value % 3 WHEN 0 THEN 'Apple' WHEN 1 THEN 'Banana' ELSE 'Strawberry' END) AS fruit")
+      .groupBy($"groupKey", $"fruit")
       .agg(
         count("*").as("cnt"),
         sum("value").as("sum"),
         max("value").as("max"),
         min("value").as("min")
       )
-      .as[(Int, Long, Long, Int, Int)]
+      .as[(Int, String, Long, Long, Int, Int)]
 
     testStream(aggregated, Update)(
       StartStream(checkpointLocation = checkpointRoot),
       // batch 0
-      AddData(inputData, 3),
-      CheckLastBatch((1, 1, 3, 3, 3)),
+      AddData(inputData, 0 to 5: _*),
+      CheckLastBatch(
+        (0, "Apple", 1, 0, 0, 0),
+        (1, "Banana", 1, 1, 1, 1),
+        (0, "Strawberry", 1, 2, 2, 2),
+        (1, "Apple", 1, 3, 3, 3),
+        (0, "Banana", 1, 4, 4, 4),
+        (1, "Strawberry", 1, 5, 5, 5)
+      ),
       // batch 1
-      AddData(inputData, 3, 2),
-      CheckLastBatch((1, 2, 6, 3, 3), (0, 1, 2, 2, 2)),
+      AddData(inputData, 6 to 10: _*),
+      // state also contains (1, "Strawberry", 1, 5, 5, 5) but not updated here
+      CheckLastBatch(
+        (0, "Apple", 2, 6, 6, 0), // 0, 6
+        (1, "Banana", 2, 8, 7, 1), // 1, 7
+        (0, "Strawberry", 2, 10, 8, 2), // 2, 8
+        (1, "Apple", 2, 12, 9, 3), // 3, 9
+        (0, "Banana", 2, 14, 10, 4) // 4, 10
+      ),
       StopStream,
       StartStream(checkpointLocation = checkpointRoot),
       // batch 2
       AddData(inputData, 3, 2, 1),
-      CheckLastBatch((1, 4, 10, 3, 1), (0, 2, 4, 2, 2))
+      CheckLastBatch(
+        (1, "Banana", 3, 9, 7, 1), // 1, 7, 1
+        (0, "Strawberry", 3, 12, 8, 2), // 2, 8, 2
+        (1, "Apple", 3, 15, 9, 3) // 3, 9, 3
+      )
     )
   }
 
