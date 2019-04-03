@@ -12,6 +12,7 @@ The features we provide as of now are:
 * Create savepoint from existing checkpoint of Structured Streaming query
   * You can pick specific batch (if it exists on metadata) to create savepoint.
   * With feature of writing state, you can achieve rescaling state, simple schema evolution, etc.
+* Show state operator information in checkpoint which you'll need to provide to enjoy above features
 
 As this project leverages Spark Structured Streaming's interfaces, and doesn't deal with internal
 (e.g. the structure of state file for HDFS state store), the performance may be suboptimal.
@@ -33,6 +34,26 @@ Spark 2.4.x is supported: it only means you should link Spark 2.4.x when using t
 ## How to use
 
 FIXME: Adding artifact to your project will be described here when the artifact is published to Maven central.
+
+First of all, you may want to get state and last batch information to provide them as parameters.
+You can get it from `StateInformationInCheckpoint`, whether calling from your codebase or running with `spark-submit`.
+Here we assume you have artifact jar of spark-state-tool and you want to run it from cli (leveraging `spark-submit`).
+
+```text
+<spark_path>/bin/spark-submit --master "local[*]" \
+--class org.apache.spark.sql.state.StateInformationInCheckpoint \
+spark-state-tool-0.0.1-SNAPSHOT.jar <checkpoint_root_path>
+```
+
+The command line will provide checkpoint information like below:
+
+```text
+Last committed batch ID: 2
+Operator ID: 0, partitions: 5, storeNames: List(default)
+```
+
+This output means the query has batch ID 2 as last committed (NOTE: corresponding state version is 3, not 2), and
+there's only one stateful operator which has ID as 0, and 5 partitions, and there's also only one kind of store named "default".
 
 To read state from your existing query, you can start your batch query like:
 
