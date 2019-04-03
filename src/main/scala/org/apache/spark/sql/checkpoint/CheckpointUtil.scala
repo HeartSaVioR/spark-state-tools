@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package org.apache.spark.sql.state
+package org.apache.spark.sql.checkpoint
 
 import org.apache.hadoop.fs.{FileUtil, Path}
 
+import org.apache.spark.sql.HadoopPathUtil
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.streaming.{CommitLog, OffsetSeqLog}
 import org.apache.spark.sql.internal.SQLConf
@@ -33,15 +34,9 @@ object CheckpointUtil {
       excludeState: Boolean = false): Unit = {
     val hadoopConf = sparkSession.sessionState.newHadoopConf()
 
-    def resolve(cpLocation: String): String = {
-      val checkpointPath = new Path(cpLocation)
-      val fs = checkpointPath.getFileSystem(hadoopConf)
-      checkpointPath.makeQualified(fs.getUri, fs.getWorkingDirectory).toUri.toString
-    }
-
-    val src = new Path(resolve(checkpointRoot))
+    val src = new Path(HadoopPathUtil.resolve(hadoopConf, checkpointRoot))
     val srcFs = src.getFileSystem(hadoopConf)
-    val dst = new Path(resolve(newCheckpointRoot))
+    val dst = new Path(HadoopPathUtil.resolve(hadoopConf, newCheckpointRoot))
     val dstFs = dst.getFileSystem(hadoopConf)
 
     if (dstFs.listFiles(dst, false).hasNext) {

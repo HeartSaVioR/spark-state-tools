@@ -94,6 +94,7 @@ class StateStoreReaderRDD(
       // assuming no same number - they're directories hence no same name
       val head = partitionNums.head
       val tail = partitionNums(partitionNums.length - 1)
+      assert(head == 0, "Partition should start with 0")
       assert((tail - head + 1) == partitionNums.length,
         s"No continuous partitions in state: $partitionNums")
 

@@ -17,11 +17,13 @@
 package org.apache.spark.sql.state
 
 import java.io.File
+import java.sql.Timestamp
 
-import org.apache.spark.sql.catalyst.streaming.InternalOutputModes.Update
+import org.apache.spark.sql.catalyst.streaming.InternalOutputModes.{Append, Update}
 import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.execution.streaming.state.StateStore
-import org.apache.spark.sql.streaming.StreamTest
+import org.apache.spark.sql.streaming.{GroupState, GroupStateTimeout, StreamTest, Trigger}
+import org.apache.spark.sql.streaming.util.StreamManualClock
 import org.apache.spark.sql.types.{IntegerType, LongType, StringType, StructType}
 import org.apache.spark.util.Utils
 
@@ -199,4 +201,160 @@ trait StateStoreTest extends StreamTest {
       )
     )
   }
+
+  protected def runStreamingDeduplicationQuery(
+      checkpointRoot: String): Unit = {
+    val inputData = MemoryStream[Int]
+
+    val aggregated = inputData.toDF()
+      .selectExpr("value", "value % 10 AS groupKey")
+      .dropDuplicates(Seq("groupKey"))
+      .as[(Int, Int)]
+
+    testStream(aggregated, Update)(
+      StartStream(checkpointLocation = checkpointRoot),
+      // batch 0
+      AddData(inputData, 0 until 20: _*),
+      CheckLastBatch(
+        (0, 0),
+        (1, 1),
+        (2, 2),
+        (3, 3),
+        (4, 4),
+        (5, 5),
+        (6, 6),
+        (7, 7),
+        (8, 8),
+        (9, 9)
+      ),
+      // batch 1
+      AddData(inputData, 20 until 40: _*),
+      // no new update
+      CheckLastBatch(),
+      StopStream,
+      StartStream(checkpointLocation = checkpointRoot),
+      // batch 2
+      AddData(inputData, 0, 1, 2),
+      // no new update
+      CheckLastBatch()
+    )
+  }
+
+  protected def runStreamingJoinQuery(checkpointRoot: String): Unit = {
+    import org.apache.spark.sql.functions._
+
+    val inputData = MemoryStream[Int]
+
+    val df = inputData.toDF()
+      .selectExpr("value", "CASE value % 2 WHEN 0 THEN 'even' ELSE 'odd' END AS isEven")
+    val df2 = df.selectExpr("value AS value2", "iseven AS isEven2")
+      .where("value % 3 != 0")
+
+    val joined = df.join(df2, expr("value == value2"))
+      .selectExpr("value", "iseven", "value2", "iseven2")
+        .as[(Int, String, Int, String)]
+
+    testStream(joined, Append)(
+      StartStream(checkpointLocation = checkpointRoot),
+      // batch 0
+      AddData(inputData, 0 until 5: _*),
+      // 0 and 3 don't exist on df2
+      CheckLastBatch(
+        (1, "odd", 1, "odd"),
+        (2, "even", 2, "even"),
+        (4, "even", 4, "even")
+      ),
+      // batch 1
+      AddData(inputData, 5 until 10: _*),
+      CheckLastBatch(
+        (5, "odd", 5, "odd"),
+        (7, "odd", 7, "odd"),
+        (8, "even", 8, "even")
+      )
+    )
+  }
+
+  protected def runFlatMapGroupsWithStateQuery(checkpointRoot: String): Unit = {
+    // scalastyle:off line.size.limit
+    // This test code is borrowed from sessionization example of Apache Spark,
+    // with modification a bit to run with testStream
+    // https://github.com/apache/spark/blob/v2.4.1/examples/src/main/scala/org/apache/spark/examples/sql/streaming/StructuredSessionization.scala
+    // scalastyle:on
+
+    val clock = new StreamManualClock
+
+    val inputData = MemoryStream[(String, Long)]
+
+    val events = inputData.toDF()
+      .as[(String, Timestamp)]
+      .flatMap { case (line, timestamp) =>
+        line.split(" ").map(word => Event(sessionId = word, timestamp))
+      }
+
+    val sessionUpdates = events
+      .groupByKey(event => event.sessionId)
+      .mapGroupsWithState[SessionInfo, SessionUpdate](GroupStateTimeout.ProcessingTimeTimeout) {
+
+      case (sessionId: String, events: Iterator[Event], state: GroupState[SessionInfo]) =>
+        if (state.hasTimedOut) {
+          val finalUpdate =
+            SessionUpdate(sessionId, state.get.durationMs, state.get.numEvents, expired = true)
+          state.remove()
+          finalUpdate
+        } else {
+          val timestamps = events.map(_.timestamp.getTime).toSeq
+          val updatedSession = if (state.exists) {
+            val oldSession = state.get
+            SessionInfo(
+              oldSession.numEvents + timestamps.size,
+              oldSession.startTimestampMs,
+              math.max(oldSession.endTimestampMs, timestamps.max))
+          } else {
+            SessionInfo(timestamps.size, timestamps.min, timestamps.max)
+          }
+          state.update(updatedSession)
+
+          state.setTimeoutDuration("10 seconds")
+          SessionUpdate(sessionId, state.get.durationMs, state.get.numEvents, expired = false)
+        }
+    }
+
+    val remapped = sessionUpdates.map(si => (si.id, si.numEvents, si.durationMs))
+
+    testStream(remapped, Update)(
+      // batch 0
+      StartStream(Trigger.ProcessingTime("1 second"), triggerClock = clock,
+        checkpointLocation = checkpointRoot),
+      AddData(inputData, ("hello world", 1L), ("hello scala", 2L)),
+      AdvanceManualClock(1 * 1000),
+      CheckNewAnswer(
+        ("hello", 2, 1000),
+        ("world", 1, 0),
+        ("scala", 1, 0)
+      ),
+      // batch 1
+      AddData(inputData, ("hello world", 3L), ("hello scala", 4L)),
+      AdvanceManualClock(1 * 1000),
+      CheckNewAnswer(
+        ("hello", 4, 3000),
+        ("world", 2, 2000),
+        ("scala", 2, 2000)
+      )
+    )
+  }
 }
+
+case class Event(sessionId: String, timestamp: Timestamp)
+
+case class SessionInfo(
+    numEvents: Int,
+    startTimestampMs: Long,
+    endTimestampMs: Long) {
+  def durationMs: Long = endTimestampMs - startTimestampMs
+}
+
+case class SessionUpdate(
+    id: String,
+    durationMs: Long,
+    numEvents: Int,
+    expired: Boolean)
