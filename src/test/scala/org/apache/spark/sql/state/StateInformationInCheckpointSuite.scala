@@ -79,7 +79,7 @@ class StateInformationInCheckpointSuite
       assert(operator.opId === 0)
       assert(operator.partitions === spark.sqlContext.conf.numShufflePartitions)
       // NOTE: this verification couples with implementation details of streaming join
-      assert(operator.storeNames === Seq("left-keyToNumValues", "left-keyWithIndexToValue",
+      assert(operator.storeNames.toSet === Set("left-keyToNumValues", "left-keyWithIndexToValue",
         "right-keyToNumValues", "right-keyWithIndexToValue"))
     }
   }
