@@ -71,16 +71,17 @@ trait StateStoreTest extends StreamTest {
       formatVersion: Int): StructType = {
     val stateKeySchema = new StructType()
       .add("groupKey", IntegerType)
-      .add("fruit", StringType)
+      .add("fruit", StringType, nullable = false)
 
     var stateValueSchema = formatVersion match {
-      case 1 => new StructType().add("groupKey", IntegerType).add("fruit", StringType)
+      case 1 =>
+        new StructType().add("groupKey", IntegerType).add("fruit", StringType, nullable = false)
       case 2 => new StructType()
       case v => throw new IllegalArgumentException(s"Not valid format version $v")
     }
 
     stateValueSchema = stateValueSchema
-      .add("cnt", LongType)
+      .add("cnt", LongType, nullable = false)
       .add("sum", LongType)
       .add("max", IntegerType)
       .add("min", IntegerType)

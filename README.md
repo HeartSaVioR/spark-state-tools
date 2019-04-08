@@ -12,7 +12,9 @@ The features we provide as of now are:
 * Create savepoint from existing checkpoint of Structured Streaming query
   * You can pick specific batch (if it exists on metadata) to create savepoint.
   * With feature of writing state, you can achieve rescaling state, simple schema evolution, etc.
-* Show state operator information in checkpoint which you'll need to provide to enjoy above features
+* Show some state information which you'll need to provide to enjoy above features
+  * state operator information from checkpoint
+  * state schema from streaming query
 * Migrate state format from old to new
   * Currently, migrating Streaming Aggregation from ver 1 to 2 is supported.
 
@@ -57,7 +59,29 @@ Operator ID: 0, partitions: 5, storeNames: List(default)
 This output means the query has batch ID 2 as last committed (NOTE: corresponding state version is 3, not 2), and
 there's only one stateful operator which has ID as 0, and 5 partitions, and there's also only one kind of store named "default".
 
-To read state from your existing query, you can start your batch query like:
+To read state from your existing query, you may want to provide state schema manually, or read from your existing query:
+
+* Read schema from existing query
+
+(supported: `streaming aggregation`, `flatMapGroupsWithState`)
+
+```scala
+// Here we assume 'spark' as SparkSession.
+val schemaInfos = new StateSchemaExtractor(spark).extract(streamingQueryDf)
+// Here schemaInfos is `Seq[StateSchemaInfo]`, which you can extract keySchema,
+// and valueSchema and finally define state schema. Please refer "Manual schema"
+// to define state schema with key schema and value schema
+
+/*
+case class StateSchemaInfo(
+    opId: Long,
+    formatVersion: Int,
+    keySchema: StructType,
+    valueSchema: StructType)
+ */
+```
+
+* Manual schema
 
 ```scala
 val stateKeySchema = new StructType()
@@ -72,7 +96,11 @@ val stateValueSchema = new StructType()
 val stateFormat = new StructType()
   .add("key", stateKeySchema)
   .add("value", stateValueSchema)
+```
 
+Then you can start your batch query like:
+
+```scala
 val operatorId = 0
 val batchId = 1 // the version of state for the output of batch is batchId + 1
 
