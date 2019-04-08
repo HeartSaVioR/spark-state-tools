@@ -21,7 +21,7 @@ import scala.util.Try
 import org.apache.hadoop.fs.{FileStatus, Path, PathFilter}
 
 import org.apache.spark.sql.{HadoopPathUtil, SparkSession}
-import org.apache.spark.sql.execution.streaming.CommitLog
+import org.apache.spark.sql.execution.streaming.{CommitLog, OffsetSeqLog}
 import org.apache.spark.sql.execution.streaming.state.StateStoreId
 
 class StateInformationInCheckpoint(spark: SparkSession) {
@@ -30,6 +30,15 @@ class StateInformationInCheckpoint(spark: SparkSession) {
   val hadoopConf = spark.sessionState.newHadoopConf()
 
   def gatherInformation(checkpointPath: Path): StateInformation = {
+    val offsetSeq = new OffsetSeqLog(spark, new Path(checkpointPath, "offsets").toString)
+    val confMap: Map[String, String] = offsetSeq.getLatest() match {
+      case Some((_, offset)) => offset.metadata match {
+        case Some(md) => md.conf
+        case None => Map.empty[String, String]
+      }
+      case None => Map.empty[String, String]
+    }
+
     val commitLog = new CommitLog(spark, new Path(checkpointPath, "commits").toString)
     val lastCommittedBatchId = commitLog.getLatest() match {
       case Some((lastId, _)) => lastId
@@ -37,7 +46,7 @@ class StateInformationInCheckpoint(spark: SparkSession) {
     }
 
     if (lastCommittedBatchId < 0) {
-      return StateInformation(None, Seq.empty)
+      return StateInformation(None, Seq.empty[StateOperatorInformation], confMap)
     }
 
     val fs = checkpointPath.getFileSystem(hadoopConf)
@@ -76,7 +85,7 @@ class StateInformationInCheckpoint(spark: SparkSession) {
       }
     }
 
-    StateInformation(Some(lastCommittedBatchId), opInfos)
+    StateInformation(Some(lastCommittedBatchId), opInfos, confMap)
   }
 
   private def validateCorrectPartitions(partitions: Array[FileStatus]): Unit = {
@@ -96,7 +105,8 @@ object StateInformationInCheckpoint {
   case class StateOperatorInformation(opId: Int, partitions: Int, storeNames: Seq[String])
   case class StateInformation(
       lastCommittedBatchId: Option[Long],
-      operators: Seq[StateOperatorInformation])
+      operators: Seq[StateOperatorInformation],
+      confs: Map[String, String])
 
   // scalastyle:off println
   def main(args: Array[String]): Unit = {

@@ -67,10 +67,9 @@ class StateStoreStreamingAggregationWriteSuite
 
         // copy all contents except state to new checkpoint root directory
         // adjust number of shuffle partitions in prior to migrate state
+        val addConf = getAdditionalConfForMetadata(newShufflePartitions)
         CheckpointUtil.createSavePoint(spark, oldCpDir.getAbsolutePath,
-          newCpDir.getAbsolutePath, newLastBatchId,
-          newShufflePartitions = Some(newShufflePartitions),
-          excludeState = true)
+          newCpDir.getAbsolutePath, newLastBatchId, addConf, excludeState = true)
 
         stateReadDf.write
           .format("state")
@@ -102,6 +101,10 @@ class StateStoreStreamingAggregationWriteSuite
     }
   }
 
+  private def getAdditionalConfForMetadata(newShufflePartitions: Int) = {
+    Map(SQLConf.SHUFFLE_PARTITIONS.key -> newShufflePartitions.toString)
+  }
+
   test("rescale state from streaming aggregation - state format version 2") {
     withSQLConf(Seq(SQLConf.STREAMING_AGGREGATION_STATE_FORMAT_VERSION.key -> "2"): _*) {
       withTempCheckpoints { case (oldCpDir, newCpDir) =>
@@ -126,10 +129,9 @@ class StateStoreStreamingAggregationWriteSuite
 
         // copy all contents except state to new checkpoint root directory
         // adjust number of shuffle partitions in prior to migrate state
+        val addConf = getAdditionalConfForMetadata(newShufflePartitions)
         CheckpointUtil.createSavePoint(spark, oldCpDir.getAbsolutePath,
-          newCpDir.getAbsolutePath, newLastBatchId,
-          newShufflePartitions = Some(newShufflePartitions),
-          excludeState = true)
+          newCpDir.getAbsolutePath, newLastBatchId, addConf, excludeState = true)
 
         stateReadDf.write
           .format("state")
@@ -215,10 +217,9 @@ class StateStoreStreamingAggregationWriteSuite
 
         // copy all contents except state to new checkpoint root directory
         // adjust number of shuffle partitions in prior to migrate state
+        val addConf = getAdditionalConfForMetadata(newShufflePartitions)
         CheckpointUtil.createSavePoint(spark, oldCpDir.getAbsolutePath,
-          newCpDir.getAbsolutePath, newLastBatchId,
-          newShufflePartitions = Some(newShufflePartitions),
-          excludeState = true)
+          newCpDir.getAbsolutePath, newLastBatchId, addConf, excludeState = true)
 
         evolutionDf.write
           .format("state")
@@ -305,10 +306,9 @@ class StateStoreStreamingAggregationWriteSuite
 
         // copy all contents except state to new checkpoint root directory
         // adjust number of shuffle partitions in prior to migrate state
+        val addConf = getAdditionalConfForMetadata(newShufflePartitions)
         CheckpointUtil.createSavePoint(spark, oldCpDir.getAbsolutePath,
-          newCpDir.getAbsolutePath, newLastBatchId,
-          newShufflePartitions = Some(newShufflePartitions),
-          excludeState = true)
+          newCpDir.getAbsolutePath, newLastBatchId, addConf, excludeState = true)
 
         evolutionDf.write
           .format("state")

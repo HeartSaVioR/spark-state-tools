@@ -20,6 +20,7 @@ import org.apache.hadoop.fs.Path
 import org.scalatest.{Assertions, BeforeAndAfterAll}
 
 import org.apache.spark.sql.execution.streaming.state.{StateStore, StateStoreId}
+import org.apache.spark.sql.internal.SQLConf
 
 class StateInformationInCheckpointSuite
   extends StateStoreTest
@@ -45,6 +46,9 @@ class StateInformationInCheckpointSuite
       assert(operator.opId === 0)
       assert(operator.partitions === spark.sqlContext.conf.numShufflePartitions)
       assert(operator.storeNames === Seq(StateStoreId.DEFAULT_STORE_NAME))
+
+      assert(stateInfo.confs.get(SQLConf.SHUFFLE_PARTITIONS.key) ===
+        Some(operator.partitions.toString))
     }
   }
 
@@ -62,6 +66,9 @@ class StateInformationInCheckpointSuite
       assert(operator.opId === 0)
       assert(operator.partitions === spark.sqlContext.conf.numShufflePartitions)
       assert(operator.storeNames === Seq(StateStoreId.DEFAULT_STORE_NAME))
+
+      assert(stateInfo.confs.get(SQLConf.SHUFFLE_PARTITIONS.key) ===
+        Some(operator.partitions.toString))
     }
   }
 
@@ -81,6 +88,9 @@ class StateInformationInCheckpointSuite
       // NOTE: this verification couples with implementation details of streaming join
       assert(operator.storeNames.toSet === Set("left-keyToNumValues", "left-keyWithIndexToValue",
         "right-keyToNumValues", "right-keyWithIndexToValue"))
+
+      assert(stateInfo.confs.get(SQLConf.SHUFFLE_PARTITIONS.key) ===
+        Some(operator.partitions.toString))
     }
   }
 
@@ -98,6 +108,9 @@ class StateInformationInCheckpointSuite
       assert(operator.opId === 0)
       assert(operator.partitions === spark.sqlContext.conf.numShufflePartitions)
       assert(operator.storeNames === Seq(StateStoreId.DEFAULT_STORE_NAME))
+
+      assert(stateInfo.confs.get(SQLConf.SHUFFLE_PARTITIONS.key) ===
+        Some(operator.partitions.toString))
     }
   }
 }
