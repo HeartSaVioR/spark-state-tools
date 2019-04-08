@@ -16,7 +16,7 @@
 
 package org.apache.spark.sql.state
 
-import org.apache.spark.sql.{AnalysisException, DataFrame, SaveMode, SQLContext}
+import org.apache.spark.sql._
 import org.apache.spark.sql.execution.streaming.state.StateStoreId
 import org.apache.spark.sql.sources.{BaseRelation, CreatableRelationProvider, DataSourceRegister, SchemaRelationProvider}
 import org.apache.spark.sql.types.{DataType, StructType}
@@ -41,8 +41,8 @@ class StateStoreDataSourceProvider
         "and each field should have corresponding fields (they should be a StructType)")
     }
 
-    val keySchema = getSchemaAsDataType(schema, "key").asInstanceOf[StructType]
-    val valueSchema = getSchemaAsDataType(schema, "value").asInstanceOf[StructType]
+    val keySchema = SchemaUtil.getSchemaAsDataType(schema, "key").asInstanceOf[StructType]
+    val valueSchema = SchemaUtil.getSchemaAsDataType(schema, "value").asInstanceOf[StructType]
 
     val checkpointLocation = parameters.get(PARAM_CHECKPOINT_LOCATION) match {
       case Some(cpLocation) => cpLocation
@@ -110,8 +110,8 @@ class StateStoreDataSourceProvider
         "and each field should have corresponding fields (they should be a StructType)")
     }
 
-    val keySchema = getSchemaAsDataType(data.schema, "key").asInstanceOf[StructType]
-    val valueSchema = getSchemaAsDataType(data.schema, "value").asInstanceOf[StructType]
+    val keySchema = SchemaUtil.getSchemaAsDataType(data.schema, "key").asInstanceOf[StructType]
+    val valueSchema = SchemaUtil.getSchemaAsDataType(data.schema, "value").asInstanceOf[StructType]
 
     new StateStoreWriter(sqlContext.sparkSession, data, keySchema, valueSchema, checkpointLocation,
       version, operatorId, storeName, newPartitions).write()
@@ -123,17 +123,13 @@ class StateStoreDataSourceProvider
   private def isValidSchema(schema: StructType): Boolean = {
     if (schema.fieldNames.toSeq != Seq("key", "value")) {
       false
-    } else if (!getSchemaAsDataType(schema, "key").isInstanceOf[StructType]) {
+    } else if (!SchemaUtil.getSchemaAsDataType(schema, "key").isInstanceOf[StructType]) {
       false
-    } else if (!getSchemaAsDataType(schema, "value").isInstanceOf[StructType]) {
+    } else if (!SchemaUtil.getSchemaAsDataType(schema, "value").isInstanceOf[StructType]) {
       false
     } else {
       true
     }
-  }
-
-  private def getSchemaAsDataType(schema: StructType, fieldName: String): DataType = {
-    schema(schema.getFieldIndex(fieldName).get).dataType
   }
 }
 

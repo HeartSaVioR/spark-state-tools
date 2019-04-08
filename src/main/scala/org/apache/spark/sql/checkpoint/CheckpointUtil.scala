@@ -20,8 +20,7 @@ import org.apache.hadoop.fs.{FileUtil, Path}
 
 import org.apache.spark.sql.HadoopPathUtil
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.execution.streaming.{CommitLog, OffsetSeqLog}
-import org.apache.spark.sql.internal.SQLConf
+import org.apache.spark.sql.execution.streaming.{CommitLog, OffsetSeqLog, OffsetSeqMetadata}
 
 object CheckpointUtil {
 
@@ -30,7 +29,7 @@ object CheckpointUtil {
       checkpointRoot: String,
       newCheckpointRoot: String,
       newLastBatchId: Long,
-      newShufflePartitions: Option[Int] = None,
+      additionalMetadataConf: Map[String, String],
       excludeState: Boolean = false): Unit = {
     val hadoopConf = sparkSession.sessionState.newHadoopConf()
 
@@ -63,16 +62,15 @@ object CheckpointUtil {
       case None => throw new IllegalStateException("offset log for batch should be exist")
     }
 
-    val newLogForBatch = newShufflePartitions match {
-      case Some(partitions) =>
-        logForBatch.copy(
-          metadata = logForBatch.metadata.map { md =>
-            md.copy(conf = md.conf + (SQLConf.SHUFFLE_PARTITIONS.key -> partitions.toString))
-          }
-        )
-
-      case None => logForBatch
+    val newMetadata = logForBatch.metadata match {
+      case Some(md) =>
+        val newMap = md.conf ++ additionalMetadataConf
+        Some(md.copy(conf = newMap))
+      case None =>
+        Some(OffsetSeqMetadata(conf = additionalMetadataConf))
     }
+
+    val newLogForBatch = logForBatch.copy(metadata = newMetadata)
 
     // we will restart from last batch + 1: overwrite the last batch with new configuration
     offsetLog.purgeAfter(newLastBatchId - 1)

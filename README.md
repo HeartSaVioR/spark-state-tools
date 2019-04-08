@@ -13,11 +13,13 @@ The features we provide as of now are:
   * You can pick specific batch (if it exists on metadata) to create savepoint.
   * With feature of writing state, you can achieve rescaling state, simple schema evolution, etc.
 * Show state operator information in checkpoint which you'll need to provide to enjoy above features
+* Migrate state format from old to new
+  * Currently, migrating Streaming Aggregation from ver 1 to 2 is supported.
 
 As this project leverages Spark Structured Streaming's interfaces, and doesn't deal with internal
 (e.g. the structure of state file for HDFS state store), the performance may be suboptimal.
 
-For now, states from Streaming Aggregation query (`groupBy().agg()`) are only supported.
+For now, from the most parts, only states from Streaming Aggregation query (`groupBy().agg()`) are supported.
 
 ## Disclaimer
 
@@ -146,13 +148,39 @@ run new Structured Streaming query with modified state.
 
 ```scala
 // Here we assume 'spark' as SparkSession.
-// If you just want to create a savepoint without modifying state, provide `newShufflePartitions` as `None`,
+// If you just want to create a savepoint without modifying state, provide `additionalMetadataConf` as `Map.empty`,
 // and `excludeState` as `false`.
 // That said, if you want to prepare state modification, it would be good to create a savepoint with providing
-// `newShufflePartitions` as `Some(newValue)`, and `excludeState` as `true` (to avoid unnecessary copy for state)
-CheckpointUtil.createSavePoint(spark, oldCpPath, newCpPath, newLastBatchId,
-  newShufflePartitions = Some(newShufflePartitions),
-  excludeState = true)
+// addConf to new shuffle partition (like below), and `excludeState` as `true` (to avoid unnecessary copy for state)
+val addConf = Map(SQLConf.SHUFFLE_PARTITIONS.key -> newShufflePartitions.toString)
+CheckpointUtil.createSavePoint(spark, oldCpPath, newCpPath, newLastBatchId, addConf, excludeState = true)
+```
+
+If you ran streaming aggregation query before Spark 2.4.0 and want to upgrade (or already upgraded) to Spark 2.4.0 or higher,
+you may also want to migrate your state from state format 1 to 2 (Spark 2.4.0 introduces it) to reduce overall state size,
+and get some speedup from most of cases.
+
+Please refer [SPARK_24763](https://issues.apache.org/jira/browse/SPARK-24763) for more details.
+
+```scala
+// Here we assume 'spark' as SparkSession.
+val stateKeySchema = new StructType()
+  .add("groupKey", IntegerType)
+
+val stateValueSchema = new StructType()
+  // value schema in state format v1 has columns in key schema
+  .add("groupKey", IntegerType)
+  .add("cnt", LongType)
+  .add("sum", LongType)
+  .add("max", IntegerType)
+  .add("min", IntegerType)
+
+val stateFormat = new StructType()
+  .add("key", stateKeySchema)
+  .add("value", stateValueSchema)
+
+val migrator = new StreamingAggregationMigrator(spark)
+migrator.convertVersion1To2(oldCpPath, newCpPath, stateKeySchema, stateValueSchema)
 ```
 
 Please refer the [test codes](https://github.com/HeartSaVioR/spark-state-tool/tree/master/src/test/scala/org/apache/spark/sql/state) to see details on how to use.
