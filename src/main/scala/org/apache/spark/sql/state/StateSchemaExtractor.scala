@@ -21,7 +21,7 @@ import java.util.UUID
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.execution.streaming._
-import org.apache.spark.sql.state.StateSchemaExtractor.StateSchemaInfo
+import org.apache.spark.sql.state.StateSchemaExtractor.{StateKind, StateSchemaInfo}
 import org.apache.spark.sql.streaming.OutputMode
 import org.apache.spark.sql.types.StructType
 
@@ -42,7 +42,8 @@ class StateSchemaExtractor(spark: SparkSession) extends Logging {
         store.stateInfo match {
           case Some(stInfo) =>
             val operatorId = stInfo.operatorId
-            StateSchemaInfo(operatorId, stateFormatVersion, keySchema, valueSchema)
+            StateSchemaInfo(operatorId, StateKind.StreamingAggregation,
+              stateFormatVersion, keySchema, valueSchema)
 
           case None => throw new IllegalStateException("State information not set!")
         }
@@ -54,7 +55,8 @@ class StateSchemaExtractor(spark: SparkSession) extends Logging {
         store.stateInfo match {
           case Some(stInfo) =>
             val operatorId = stInfo.operatorId
-            StateSchemaInfo(operatorId, stateFormatVersion, keySchema, valueSchema)
+            StateSchemaInfo(operatorId, StateKind.FlatMapGroupsWithState,
+              stateFormatVersion, keySchema, valueSchema)
 
           case None => throw new IllegalStateException("State information not set!")
         }
@@ -64,8 +66,13 @@ class StateSchemaExtractor(spark: SparkSession) extends Logging {
 }
 
 object StateSchemaExtractor {
+  object StateKind extends Enumeration {
+    val StreamingAggregation, StreamingJoin, FlatMapGroupsWithState = Value
+  }
+
   case class StateSchemaInfo(
       opId: Long,
+      stateKind: StateKind.Value,
       formatVersion: Int,
       keySchema: StructType,
       valueSchema: StructType)

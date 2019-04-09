@@ -320,7 +320,7 @@ trait StateStoreTest extends StreamTest {
         }
     }
 
-    val remapped = sessionUpdates.map(si => (si.id, si.numEvents, si.durationMs))
+    val remapped = sessionUpdates.map(si => (si.id, si.numEvents, si.durationMs, si.expired))
 
     testStream(remapped, Update)(
       // batch 0
@@ -329,17 +329,17 @@ trait StateStoreTest extends StreamTest {
       AddData(inputData, ("hello world", 1L), ("hello scala", 2L)),
       AdvanceManualClock(1 * 1000),
       CheckNewAnswer(
-        ("hello", 2, 1000),
-        ("world", 1, 0),
-        ("scala", 1, 0)
+        ("hello", 2, 1000, false),
+        ("world", 1, 0, false),
+        ("scala", 1, 0, false)
       ),
       // batch 1
       AddData(inputData, ("hello world", 3L), ("hello scala", 4L)),
       AdvanceManualClock(1 * 1000),
       CheckNewAnswer(
-        ("hello", 4, 3000),
-        ("world", 2, 2000),
-        ("scala", 2, 2000)
+        ("hello", 4, 3000, false),
+        ("world", 2, 2000, false),
+        ("scala", 2, 2000, false)
       )
     )
   }
