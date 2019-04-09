@@ -66,14 +66,6 @@ You can achieve this as calling `StateInformationInCheckpoint.gatherInformation`
 // Here the class of Path is `org.apache.hadoop.fs.Path`
 val stateInfo = new StateInformationInCheckpoint(spark).gatherInformation(new Path(cpDir.getAbsolutePath))
 // Here stateInfo is `StateInformation`, which you can extract same information as running CLI app
-
-/*
-case class StateOperatorInformation(opId: Int, partitions: Int, storeNames: Seq[String])
-case class StateInformation(
-  lastCommittedBatchId: Option[Long],
-  operators: Seq[StateOperatorInformation],
-  confs: Map[String, String])
- */
 ```
 
 To read state from your existing query, you may want to provide state schema manually, or read from your existing query:
@@ -88,14 +80,6 @@ val schemaInfos = new StateSchemaExtractor(spark).extract(streamingQueryDf)
 // Here schemaInfos is `Seq[StateSchemaInfo]`, which you can extract keySchema,
 // and valueSchema and finally define state schema. Please refer "Manual schema"
 // to define state schema with key schema and value schema
-
-/*
-case class StateSchemaInfo(
-    opId: Long,
-    formatVersion: Int,
-    keySchema: StructType,
-    valueSchema: StructType)
- */
 ```
 
 * Manual schema
