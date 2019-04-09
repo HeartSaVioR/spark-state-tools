@@ -6,17 +6,17 @@ Spark State Tools provides features about offline manipulation of Structured Str
 
 The features we provide as of now are:
 
-* Read state as batch source of Spark SQL
-* Write DataFrame to state as batch sink of Spark SQL
-  * Repartitioning is supported while writing state
-* Create savepoint from existing checkpoint of Structured Streaming query
-  * You can pick specific batch (if it exists on metadata) to create savepoint.
-  * With feature of writing state, you can achieve rescaling state, simple schema evolution, etc.
-* Show some state information which you'll need to provide to enjoy above features
+* Show some state information which you'll need to provide to enjoy below features
   * state operator information from checkpoint
   * state schema from streaming query
+* Create savepoint from existing checkpoint of Structured Streaming query
+  * You can pick specific batch (if it exists on metadata) to create savepoint
+* Read state as batch source of Spark SQL
+* Write DataFrame to state as batch sink of Spark SQL
+  * With feature of writing state, you can achieve rescaling state (repartition), simple schema evolution, etc.
 * Migrate state format from old to new
-  * Currently, migrating Streaming Aggregation from ver 1 to 2 is supported.
+  * migrating Streaming Aggregation from ver 1 to 2
+  * migrating FlatMapGroupsWithState from ver 1 to 2
 
 As this project leverages Spark Structured Streaming's interfaces, and doesn't deal with internal
 (e.g. the structure of state file for HDFS state store), the performance may be suboptimal.
@@ -58,6 +58,23 @@ Operator ID: 0, partitions: 5, storeNames: List(default)
 
 This output means the query has batch ID 2 as last committed (NOTE: corresponding state version is 3, not 2), and
 there's only one stateful operator which has ID as 0, and 5 partitions, and there's also only one kind of store named "default".
+
+You can achieve this as calling `StateInformationInCheckpoint.gatherInformation` against checkpoint directory too.
+
+```spark
+// Here we assume 'spark' as SparkSession.
+// Here the class of Path is `org.apache.hadoop.fs.Path`
+val stateInfo = new StateInformationInCheckpoint(spark).gatherInformation(new Path(cpDir.getAbsolutePath))
+// Here stateInfo is `StateInformation`, which you can extract same information as running CLI app
+
+/*
+case class StateOperatorInformation(opId: Int, partitions: Int, storeNames: Seq[String])
+case class StateInformation(
+  lastCommittedBatchId: Option[Long],
+  operators: Seq[StateOperatorInformation],
+  confs: Map[String, String])
+ */
+```
 
 To read state from your existing query, you may want to provide state schema manually, or read from your existing query:
 
@@ -188,30 +205,37 @@ If you ran streaming aggregation query before Spark 2.4.0 and want to upgrade (o
 you may also want to migrate your state from state format 1 to 2 (Spark 2.4.0 introduces it) to reduce overall state size,
 and get some speedup from most of cases.
 
-Please refer [SPARK_24763](https://issues.apache.org/jira/browse/SPARK-24763) for more details.
+Please refer [SPARK-24763](https://issues.apache.org/jira/browse/SPARK-24763) for more details.
 
 ```scala
 // Here we assume 'spark' as SparkSession.
-val stateKeySchema = new StructType()
-  .add("groupKey", IntegerType)
 
-val stateValueSchema = new StructType()
-  // value schema in state format v1 has columns in key schema
-  .add("groupKey", IntegerType)
-  .add("cnt", LongType)
-  .add("sum", LongType)
-  .add("max", IntegerType)
-  .add("min", IntegerType)
-
-val stateFormat = new StructType()
-  .add("key", stateKeySchema)
-  .add("value", stateValueSchema)
+// Please refer above to see how to construct `stateSchema`
+// (manually, or reading from existing query)
+// Here we already construct `stateSchema` as state schema.
 
 val migrator = new StreamingAggregationMigrator(spark)
 migrator.convertVersion1To2(oldCpPath, newCpPath, stateKeySchema, stateValueSchema)
 ```
 
-Please refer the [test codes](https://github.com/HeartSaVioR/spark-state-tool/tree/master/src/test/scala/org/apache/spark/sql/state) to see details on how to use.
+Similarly, if you ran flatMapGroupsWithState query before Spark 2.4.0 and want to upgrade (or already upgraded) to Spark 2.4.0 or higher,
+you may also want to migrate your state from state format 1 to 2 (Spark 2.4.0 introduces it) to enable setting timeout even when state is null.
+(This also changes timeout timestamp type from int to long.)
+
+Please refer [SPARK-22187](https://issues.apache.org/jira/browse/SPARK-22187) for more details.
+
+```scala
+// Here we assume 'spark' as SparkSession.
+
+// Please refer above to see how to construct `stateSchema`
+// (manually, or reading from existing query)
+// Here we already construct `stateSchema` as state schema.
+
+val migrator = new FlatMapGroupsWithStateMigrator(spark)
+migrator.convertVersion1To2(oldCpPath, newCpPath, stateKeySchema, stateValueSchema)
+```
+
+Please refer the [test codes](https://github.com/HeartSaVioR/spark-state-tool/tree/master/src/test/scala/org/apache/spark/sql/state) to see more examples on how to use.
 
 ## License
 

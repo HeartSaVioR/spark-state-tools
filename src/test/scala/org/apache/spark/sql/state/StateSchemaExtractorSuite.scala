@@ -24,6 +24,7 @@ import org.apache.spark.sql.{Dataset, Encoders, SchemaUtil}
 import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.execution.streaming.state.StateStore
 import org.apache.spark.sql.internal.SQLConf
+import org.apache.spark.sql.state.StateSchemaExtractor.StateKind
 import org.apache.spark.sql.streaming.{GroupState, GroupStateTimeout}
 import org.apache.spark.sql.types.{IntegerType, LongType, StringType, StructType}
 
@@ -57,6 +58,8 @@ class StateSchemaExtractorSuite
         val schemaInfo = schemaInfos.head
         assert(schemaInfo.opId === 0)
         assert(schemaInfo.formatVersion === ver)
+        assert(schemaInfo.stateKind === StateKind.StreamingAggregation)
+
         assert(compareSchemaWithoutName(schemaInfo.keySchema, expectedKeySchema),
           s"Even without column names, ${schemaInfo.keySchema} did not equal $expectedKeySchema")
         assert(compareSchemaWithoutName(schemaInfo.valueSchema, expectedValueSchema),
@@ -88,6 +91,7 @@ class StateSchemaExtractorSuite
         assert(schemaInfos.length === 1)
         val schemaInfo = schemaInfos.head
         assert(schemaInfo.opId === 0)
+        assert(schemaInfo.stateKind === StateKind.FlatMapGroupsWithState)
         assert(schemaInfo.formatVersion === ver)
 
         assert(compareSchemaWithoutName(schemaInfo.keySchema, expectedKeySchema),
