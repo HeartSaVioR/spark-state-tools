@@ -61,7 +61,7 @@ there's only one stateful operator which has ID as 0, and 5 partitions, and ther
 
 You can achieve this as calling `StateInformationInCheckpoint.gatherInformation` against checkpoint directory too.
 
-```spark
+```scala
 // Here we assume 'spark' as SparkSession.
 // Here the class of Path is `org.apache.hadoop.fs.Path`
 val stateInfo = new StateInformationInCheckpoint(spark).gatherInformation(new Path(cpDir.getAbsolutePath))
