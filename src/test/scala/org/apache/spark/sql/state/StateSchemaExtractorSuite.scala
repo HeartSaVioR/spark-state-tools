@@ -20,13 +20,14 @@ import java.sql.Timestamp
 
 import org.scalatest.{Assertions, BeforeAndAfterAll}
 
-import org.apache.spark.sql.{Dataset, Encoders, SchemaUtil}
+import org.apache.spark.sql.{Dataset, Encoders}
 import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.execution.streaming.state.StateStore
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.state.StateSchemaExtractor.StateKind
 import org.apache.spark.sql.streaming.{GroupState, GroupStateTimeout}
 import org.apache.spark.sql.types.{IntegerType, LongType, StringType, StructType}
+import org.apache.spark.sql.util.SchemaUtil
 
 class StateSchemaExtractorSuite
   extends StateStoreTest

@@ -21,6 +21,10 @@ import org.apache.spark.sql.state.StateInformationInCheckpoint.StateInformation
 import org.apache.spark.sql.state.StateSchemaExtractor.StateSchemaInfo
 import org.apache.spark.sql.types.StructType
 
+/**
+ * This class combines [[StateInformation]] and [[StateSchemaInfo]] to provide actual
+ * parameters needed for state store read.
+ */
 object StateStoreReaderOperatorParamExtractor {
   case class StateStoreReaderOperatorParam(
       lastStateVersion: Option[Long],

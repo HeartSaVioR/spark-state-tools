@@ -21,13 +21,14 @@ import java.io.File
 import org.apache.hadoop.fs.Path
 import org.scalatest.{Assertions, BeforeAndAfterAll}
 
-import org.apache.spark.sql.{Row, SchemaUtil}
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.streaming.InternalOutputModes.Update
 import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.execution.streaming.state.StateStore
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.state.migration.StreamingAggregationMigrator
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.util.SchemaUtil
 
 class StreamingAggregationMigratorSuite
   extends StateStoreTest

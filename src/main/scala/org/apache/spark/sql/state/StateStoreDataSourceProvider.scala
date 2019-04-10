@@ -19,10 +19,14 @@ package org.apache.spark.sql.state
 import org.apache.spark.sql._
 import org.apache.spark.sql.execution.streaming.state.StateStoreId
 import org.apache.spark.sql.sources.{BaseRelation, CreatableRelationProvider, DataSourceRegister, SchemaRelationProvider}
-import org.apache.spark.sql.types.{DataType, StructType}
+import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.util.SchemaUtil
 
 // TODO: read schema of key and value from metadata of state (requires SPARK-27237)
 //  and change SchemaRelationProvider to RelationProvider to receive schema optionally
+/**
+ * Data Source Provider for state store to enable read to/write from state.
+ */
 class StateStoreDataSourceProvider
   extends DataSourceRegister
   with SchemaRelationProvider

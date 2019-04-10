@@ -25,6 +25,13 @@ import org.apache.spark.sql.state.StateSchemaExtractor.{StateKind, StateSchemaIn
 import org.apache.spark.sql.streaming.OutputMode
 import org.apache.spark.sql.types.StructType
 
+/**
+ * This class enables extracting state schema and its format version via analyzing
+ * the streaming query. The query should have its state operators but it should exclude sink(s).
+ *
+ * Note that it only returns which can be extracted by this class, so number of state
+ * in given query may not be same as returned number of schema information.
+ */
 class StateSchemaExtractor(spark: SparkSession) extends Logging {
 
   def extract(query: DataFrame): Seq[StateSchemaInfo] = {

@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-package org.apache.spark.sql
+package org.apache.spark.sql.util
 
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.Path
+import org.apache.spark.sql.types.{DataType, StructType}
 
-object HadoopPathUtil {
-  def resolve(hadoopConf: Configuration, cpLocation: String): String = {
-    val checkpointPath = new Path(cpLocation)
-    val fs = checkpointPath.getFileSystem(hadoopConf)
-    checkpointPath.makeQualified(fs.getUri, fs.getWorkingDirectory).toUri.toString
+object SchemaUtil {
+  def getSchemaAsDataType(schema: StructType, fieldName: String): DataType = {
+    schema(schema.getFieldIndex(fieldName).get).dataType
   }
 }

@@ -36,6 +36,9 @@ class StateStorePartition(
   override def index: Int = partition
 }
 
+/**
+ * An RDD that reads (key, value) pair of state and provides these pairs.
+ */
 class StateStoreReaderRDD(
     session: SparkSession,
     keySchema: StructType,
