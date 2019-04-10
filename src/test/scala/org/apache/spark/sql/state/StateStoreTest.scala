@@ -19,9 +19,11 @@ package org.apache.spark.sql.state
 import java.io.File
 import java.sql.Timestamp
 
+import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.catalyst.streaming.InternalOutputModes.{Append, Update}
 import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.execution.streaming.state.StateStore
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.streaming.{GroupState, GroupStateTimeout, StreamTest, Trigger}
 import org.apache.spark.sql.streaming.util.StreamManualClock
 import org.apache.spark.sql.types.{IntegerType, LongType, StringType, StructType}
@@ -46,68 +48,10 @@ trait StateStoreTest extends StreamTest {
     }
   }
 
-  protected def getSchemaForLargeDataStreamingAggregationQuery(formatVersion: Int): StructType = {
-    val stateKeySchema = new StructType()
-      .add("groupKey", IntegerType)
-
-    var stateValueSchema = formatVersion match {
-      case 1 => new StructType().add("groupKey", IntegerType)
-      case 2 => new StructType()
-      case v => throw new IllegalArgumentException(s"Not valid format version $v")
-    }
-
-    stateValueSchema = stateValueSchema
-      .add("cnt", LongType)
-      .add("sum", LongType)
-      .add("max", IntegerType)
-      .add("min", IntegerType)
-
-    new StructType()
-      .add("key", stateKeySchema)
-      .add("value", stateValueSchema)
-  }
-
-  protected def getSchemaForCompositeKeyStreamingAggregationQuery(
-      formatVersion: Int): StructType = {
-    val stateKeySchema = new StructType()
-      .add("groupKey", IntegerType)
-      .add("fruit", StringType, nullable = false)
-
-    var stateValueSchema = formatVersion match {
-      case 1 =>
-        new StructType().add("groupKey", IntegerType).add("fruit", StringType, nullable = false)
-      case 2 => new StructType()
-      case v => throw new IllegalArgumentException(s"Not valid format version $v")
-    }
-
-    stateValueSchema = stateValueSchema
-      .add("cnt", LongType, nullable = false)
-      .add("sum", LongType)
-      .add("max", IntegerType)
-      .add("min", IntegerType)
-
-    new StructType()
-      .add("key", stateKeySchema)
-      .add("value", stateValueSchema)
-  }
-
   protected def runCompositeKeyStreamingAggregationQuery(
       checkpointRoot: String): Unit = {
-    import org.apache.spark.sql.functions._
-
     val inputData = MemoryStream[Int]
-
-    val aggregated = inputData.toDF()
-      .selectExpr("value", "value % 2 AS groupKey",
-        "(CASE value % 3 WHEN 0 THEN 'Apple' WHEN 1 THEN 'Banana' ELSE 'Strawberry' END) AS fruit")
-      .groupBy($"groupKey", $"fruit")
-      .agg(
-        count("*").as("cnt"),
-        sum("value").as("sum"),
-        max("value").as("max"),
-        min("value").as("min")
-      )
-      .as[(Int, String, Long, Long, Int, Int)]
+    val aggregated = getCompositeKeyStreamingAggregationQuery(inputData)
 
     testStream(aggregated, Update)(
       StartStream(checkpointLocation = checkpointRoot),
@@ -143,22 +87,54 @@ trait StateStoreTest extends StreamTest {
     )
   }
 
-  protected def runLargeDataStreamingAggregationQuery(
-      checkpointRoot: String): Unit = {
-    import org.apache.spark.sql.functions._
+  protected def getCompositeKeyStreamingAggregationQuery
+    : Dataset[(Int, String, Long, Long, Int, Int)] = {
+    getCompositeKeyStreamingAggregationQuery(MemoryStream[Int])
+  }
 
-    val inputData = MemoryStream[Int]
-
-    val aggregated = inputData.toDF()
-      .selectExpr("value", "value % 10 AS groupKey")
-      .groupBy($"groupKey")
+  protected def getCompositeKeyStreamingAggregationQuery(
+      inputData: MemoryStream[Int]): Dataset[(Int, String, Long, Long, Int, Int)] = {
+    inputData.toDF()
+      .selectExpr("value", "value % 2 AS groupKey",
+        "(CASE value % 3 WHEN 0 THEN 'Apple' WHEN 1 THEN 'Banana' ELSE 'Strawberry' END) AS fruit")
+      .groupBy($"groupKey", $"fruit")
       .agg(
         count("*").as("cnt"),
         sum("value").as("sum"),
         max("value").as("max"),
         min("value").as("min")
       )
-      .as[(Int, Long, Long, Int, Int)]
+      .as[(Int, String, Long, Long, Int, Int)]
+  }
+
+  protected def getSchemaForCompositeKeyStreamingAggregationQuery(
+      formatVersion: Int): StructType = {
+    val stateKeySchema = new StructType()
+      .add("groupKey", IntegerType)
+      .add("fruit", StringType, nullable = false)
+
+    var stateValueSchema = formatVersion match {
+      case 1 =>
+        new StructType().add("groupKey", IntegerType).add("fruit", StringType, nullable = false)
+      case 2 => new StructType()
+      case v => throw new IllegalArgumentException(s"Not valid format version $v")
+    }
+
+    stateValueSchema = stateValueSchema
+      .add("cnt", LongType, nullable = false)
+      .add("sum", LongType)
+      .add("max", IntegerType)
+      .add("min", IntegerType)
+
+    new StructType()
+      .add("key", stateKeySchema)
+      .add("value", stateValueSchema)
+  }
+
+  protected def runLargeDataStreamingAggregationQuery(
+      checkpointRoot: String): Unit = {
+    val inputData = MemoryStream[Int]
+    val aggregated = getLargeDataStreamingAggregationQuery(inputData)
 
     // check with more data - leverage full partitions
     testStream(aggregated, Update)(
@@ -203,8 +179,46 @@ trait StateStoreTest extends StreamTest {
     )
   }
 
-  protected def runStreamingDeduplicationQuery(
-      checkpointRoot: String): Unit = {
+  protected def getLargeDataStreamingAggregationQuery: Dataset[(Int, Long, Long, Int, Int)] = {
+    getLargeDataStreamingAggregationQuery(MemoryStream[Int])
+  }
+
+  protected def getLargeDataStreamingAggregationQuery(
+      inputData: MemoryStream[Int]): Dataset[(Int, Long, Long, Int, Int)] = {
+    inputData.toDF()
+      .selectExpr("value", "value % 10 AS groupKey")
+      .groupBy($"groupKey")
+      .agg(
+        count("*").as("cnt"),
+        sum("value").as("sum"),
+        max("value").as("max"),
+        min("value").as("min")
+      )
+      .as[(Int, Long, Long, Int, Int)]
+  }
+
+  protected def getSchemaForLargeDataStreamingAggregationQuery(formatVersion: Int): StructType = {
+    val stateKeySchema = new StructType()
+      .add("groupKey", IntegerType)
+
+    var stateValueSchema = formatVersion match {
+      case 1 => new StructType().add("groupKey", IntegerType)
+      case 2 => new StructType()
+      case v => throw new IllegalArgumentException(s"Not valid format version $v")
+    }
+
+    stateValueSchema = stateValueSchema
+      .add("cnt", LongType)
+      .add("sum", LongType)
+      .add("max", IntegerType)
+      .add("min", IntegerType)
+
+    new StructType()
+      .add("key", stateKeySchema)
+      .add("value", stateValueSchema)
+  }
+
+  protected def runStreamingDeduplicationQuery(checkpointRoot: String): Unit = {
     val inputData = MemoryStream[Int]
 
     val aggregated = inputData.toDF()
@@ -242,18 +256,8 @@ trait StateStoreTest extends StreamTest {
   }
 
   protected def runStreamingJoinQuery(checkpointRoot: String): Unit = {
-    import org.apache.spark.sql.functions._
-
     val inputData = MemoryStream[Int]
-
-    val df = inputData.toDF()
-      .selectExpr("value", "CASE value % 2 WHEN 0 THEN 'even' ELSE 'odd' END AS isEven")
-    val df2 = df.selectExpr("value AS value2", "iseven AS isEven2")
-      .where("value % 3 != 0")
-
-    val joined = df.join(df2, expr("value == value2"))
-      .selectExpr("value", "iseven", "value2", "iseven2")
-        .as[(Int, String, Int, String)]
+    val joined = getStreamingJoinQuery(inputData)
 
     testStream(joined, Append)(
       StartStream(checkpointLocation = checkpointRoot),
@@ -275,16 +279,61 @@ trait StateStoreTest extends StreamTest {
     )
   }
 
+  protected def getStreamingJoinQuery: Dataset[(Int, String, Int, String)] = {
+    getStreamingJoinQuery(MemoryStream[Int])
+  }
+
+  protected def getStreamingJoinQuery(
+      inputData: MemoryStream[Int]): Dataset[(Int, String, Int, String)] = {
+    val df = inputData.toDF()
+      .selectExpr("value", "CASE value % 2 WHEN 0 THEN 'even' ELSE 'odd' END AS isEven")
+    val df2 = df.selectExpr("value AS value2", "iseven AS isEven2")
+      .where("value % 3 != 0")
+
+    df.join(df2, expr("value == value2"))
+      .selectExpr("value", "iseven", "value2", "iseven2")
+      .as[(Int, String, Int, String)]
+  }
+
   protected def runFlatMapGroupsWithStateQuery(checkpointRoot: String): Unit = {
+    val clock = new StreamManualClock
+
+    val inputData = MemoryStream[(String, Long)]
+    val remapped = getFlatMapGroupsWithStateQuery(inputData)
+
+    testStream(remapped, Update)(
+      // batch 0
+      StartStream(Trigger.ProcessingTime("1 second"), triggerClock = clock,
+        checkpointLocation = checkpointRoot),
+      AddData(inputData, ("hello world", 1L), ("hello scala", 2L)),
+      AdvanceManualClock(1 * 1000),
+      CheckNewAnswer(
+        ("hello", 2, 1000, false),
+        ("world", 1, 0, false),
+        ("scala", 1, 0, false)
+      ),
+      // batch 1
+      AddData(inputData, ("hello world", 3L), ("hello scala", 4L)),
+      AdvanceManualClock(1 * 1000),
+      CheckNewAnswer(
+        ("hello", 4, 3000, false),
+        ("world", 2, 2000, false),
+        ("scala", 2, 2000, false)
+      )
+    )
+  }
+
+  protected def getFlatMapGroupsWithStateQuery: Dataset[(String, Int, Long, Boolean)] = {
+    getFlatMapGroupsWithStateQuery(MemoryStream[(String, Long)])
+  }
+
+  protected def getFlatMapGroupsWithStateQuery(
+      inputData: MemoryStream[(String, Long)]): Dataset[(String, Int, Long, Boolean)] = {
     // scalastyle:off line.size.limit
     // This test code is borrowed from sessionization example of Apache Spark,
     // with modification a bit to run with testStream
     // https://github.com/apache/spark/blob/v2.4.1/examples/src/main/scala/org/apache/spark/examples/sql/streaming/StructuredSessionization.scala
     // scalastyle:on
-
-    val clock = new StreamManualClock
-
-    val inputData = MemoryStream[(String, Long)]
 
     val events = inputData.toDF()
       .as[(String, Timestamp)]
@@ -320,29 +369,9 @@ trait StateStoreTest extends StreamTest {
         }
     }
 
-    val remapped = sessionUpdates.map(si => (si.id, si.numEvents, si.durationMs, si.expired))
-
-    testStream(remapped, Update)(
-      // batch 0
-      StartStream(Trigger.ProcessingTime("1 second"), triggerClock = clock,
-        checkpointLocation = checkpointRoot),
-      AddData(inputData, ("hello world", 1L), ("hello scala", 2L)),
-      AdvanceManualClock(1 * 1000),
-      CheckNewAnswer(
-        ("hello", 2, 1000, false),
-        ("world", 1, 0, false),
-        ("scala", 1, 0, false)
-      ),
-      // batch 1
-      AddData(inputData, ("hello world", 3L), ("hello scala", 4L)),
-      AdvanceManualClock(1 * 1000),
-      CheckNewAnswer(
-        ("hello", 4, 3000, false),
-        ("world", 2, 2000, false),
-        ("scala", 2, 2000, false)
-      )
-    )
+    sessionUpdates.map(si => (si.id, si.numEvents, si.durationMs, si.expired))
   }
+
 }
 
 case class Event(sessionId: String, timestamp: Timestamp)

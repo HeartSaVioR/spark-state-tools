@@ -119,42 +119,7 @@ class FlatMapGroupsWithStateMigratorSuite
     val clock = new StreamManualClock
 
     val inputData = MemoryStream[(String, Long)]
-
-    val events = inputData.toDF()
-      .as[(String, Timestamp)]
-      .flatMap { case (line, timestamp) =>
-        line.split(" ").map(word => Event(sessionId = word, timestamp))
-      }
-
-    val sessionUpdates = events
-      .groupByKey(event => event.sessionId)
-      .mapGroupsWithState[SessionInfo, SessionUpdate](GroupStateTimeout.ProcessingTimeTimeout) {
-
-      case (sessionId: String, events: Iterator[Event], state: GroupState[SessionInfo]) =>
-        if (state.hasTimedOut) {
-          val finalUpdate =
-            SessionUpdate(sessionId, state.get.durationMs, state.get.numEvents, expired = true)
-          state.remove()
-          finalUpdate
-        } else {
-          val timestamps = events.map(_.timestamp.getTime).toSeq
-          val updatedSession = if (state.exists) {
-            val oldSession = state.get
-            SessionInfo(
-              oldSession.numEvents + timestamps.size,
-              oldSession.startTimestampMs,
-              math.max(oldSession.endTimestampMs, timestamps.max))
-          } else {
-            SessionInfo(timestamps.size, timestamps.min, timestamps.max)
-          }
-          state.update(updatedSession)
-
-          state.setTimeoutDuration("10 seconds")
-          SessionUpdate(sessionId, state.get.durationMs, state.get.numEvents, expired = false)
-        }
-    }
-
-    val remapped = sessionUpdates.map(si => (si.id, si.numEvents, si.durationMs, si.expired))
+    val remapped = getFlatMapGroupsWithStateQuery(inputData)
 
     // batch 0
     inputData.addData(("hello world", 1L), ("hello scala", 2L))
