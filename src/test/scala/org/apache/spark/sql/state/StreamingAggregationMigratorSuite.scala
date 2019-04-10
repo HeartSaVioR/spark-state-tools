@@ -106,18 +106,7 @@ class StreamingAggregationMigratorSuite
     import testImplicits._
 
     val inputData = MemoryStream[Int]
-
-    val aggregated = inputData.toDF()
-      .selectExpr("value", "value % 2 AS groupKey",
-        "(CASE value % 3 WHEN 0 THEN 'Apple' WHEN 1 THEN 'Banana' ELSE 'Strawberry' END) AS fruit")
-      .groupBy($"groupKey", $"fruit")
-      .agg(
-        count("*").as("cnt"),
-        sum("value").as("sum"),
-        max("value").as("max"),
-        min("value").as("min")
-      )
-      .as[(Int, String, Long, Long, Int, Int)]
+    val aggregated = getCompositeKeyStreamingAggregationQuery(inputData)
 
     // batch 0
     inputData.addData(0 to 5)

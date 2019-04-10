@@ -16,16 +16,12 @@
 
 package org.apache.spark.sql.state
 
-import java.sql.Timestamp
-
 import org.scalatest.{Assertions, BeforeAndAfterAll}
 
-import org.apache.spark.sql.{Dataset, Encoders}
-import org.apache.spark.sql.execution.streaming.MemoryStream
+import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.execution.streaming.state.StateStore
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.state.StateSchemaExtractor.StateKind
-import org.apache.spark.sql.streaming.{GroupState, GroupStateTimeout}
 import org.apache.spark.sql.types.{IntegerType, LongType, StringType, StructType}
 import org.apache.spark.sql.util.SchemaUtil
 
@@ -33,8 +29,6 @@ class StateSchemaExtractorSuite
   extends StateStoreTest
     with BeforeAndAfterAll
     with Assertions {
-
-  import testImplicits._
 
   override def afterAll(): Unit = {
     super.afterAll()
@@ -44,9 +38,7 @@ class StateSchemaExtractorSuite
   Seq(1, 2).foreach { ver =>
     test(s"extract schema from streaming aggregation query - state format v$ver") {
       withSQLConf(SQLConf.STREAMING_AGGREGATION_STATE_FORMAT_VERSION.key -> ver.toString) {
-        // This is borrowed from StateStoreTest, runCompositeKeyStreamingAggregationQuery
-        // so we can get schema information from getSchemaForCompositeKeyStreamingAggregationQuery
-        val aggregated = getCompositeKeyStreamingQuery
+        val aggregated = getCompositeKeyStreamingAggregationQuery
 
         val stateSchema = getSchemaForCompositeKeyStreamingAggregationQuery(ver)
         val expectedKeySchema = SchemaUtil.getSchemaAsDataType(stateSchema, "key")
@@ -102,66 +94,6 @@ class StateSchemaExtractorSuite
             s"$expectedValueSchema")
       }
     }
-  }
-
-  private def getCompositeKeyStreamingQuery: Dataset[(Int, String, Long, Long, Int, Int)] = {
-    import org.apache.spark.sql.functions._
-
-    val inputData = MemoryStream[Int]
-
-    // This is borrowed from StateStoreTest, runCompositeKeyStreamingAggregationQuery
-    // so we can get schema information from getSchemaForCompositeKeyStreamingAggregationQuery
-    inputData.toDF()
-      .selectExpr("value", "value % 2 AS groupKey",
-        "(CASE value % 3 WHEN 0 THEN 'Apple' WHEN 1 THEN 'Banana' ELSE 'Strawberry' END) AS fruit")
-      .groupBy($"groupKey", $"fruit")
-      .agg(
-        count("*").as("cnt"),
-        sum("value").as("sum"),
-        max("value").as("max"),
-        min("value").as("min")
-      )
-      .as[(Int, String, Long, Long, Int, Int)]
-  }
-
-  private def getFlatMapGroupsWithStateQuery: Dataset[(String, Int, Long)] = {
-    val inputData = MemoryStream[(String, Long)]
-
-    val events = inputData.toDF()
-      .as[(String, Timestamp)]
-      .flatMap { case (line, timestamp) =>
-        line.split(" ").map(word => Event(sessionId = word, timestamp))
-      }
-
-    val sessionUpdates = events
-      .groupByKey(event => event.sessionId)
-      .mapGroupsWithState[SessionInfo, SessionUpdate](GroupStateTimeout.ProcessingTimeTimeout) {
-
-      case (sessionId: String, events: Iterator[Event], state: GroupState[SessionInfo]) =>
-        if (state.hasTimedOut) {
-          val finalUpdate =
-            SessionUpdate(sessionId, state.get.durationMs, state.get.numEvents, expired = true)
-          state.remove()
-          finalUpdate
-        } else {
-          val timestamps = events.map(_.timestamp.getTime).toSeq
-          val updatedSession = if (state.exists) {
-            val oldSession = state.get
-            SessionInfo(
-              oldSession.numEvents + timestamps.size,
-              oldSession.startTimestampMs,
-              math.max(oldSession.endTimestampMs, timestamps.max))
-          } else {
-            SessionInfo(timestamps.size, timestamps.min, timestamps.max)
-          }
-          state.update(updatedSession)
-
-          state.setTimeoutDuration("10 seconds")
-          SessionUpdate(sessionId, state.get.durationMs, state.get.numEvents, expired = false)
-        }
-    }
-
-    sessionUpdates.map(si => (si.id, si.numEvents, si.durationMs))
   }
 
   private def compareSchemaWithoutName(s1: StructType, s2: StructType): Boolean = {

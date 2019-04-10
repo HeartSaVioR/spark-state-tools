@@ -356,17 +356,7 @@ class StateStoreStreamingAggregationWriteSuite
     import testImplicits._
 
     val inputData = MemoryStream[Int]
-
-    val aggregated = inputData.toDF()
-      .selectExpr("value", "value % 10 AS groupKey")
-      .groupBy($"groupKey")
-      .agg(
-        count("*").as("cnt"),
-        sum("value").as("sum"),
-        max("value").as("max"),
-        min("value").as("min")
-      )
-      .as[(Int, Long, Long, Int, Int)]
+    val aggregated = getLargeDataStreamingAggregationQuery(inputData)
 
     // batch 0
     inputData.addData(0 until 20)
