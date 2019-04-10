@@ -26,8 +26,19 @@ import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.state.{StateInformationInCheckpoint, StateStoreDataSourceProvider}
 import org.apache.spark.sql.types.StructType
 
+/**
+ * This class enables migration functionality for query using streaming aggregation (e.g. agg()).
+ */
 class StreamingAggregationMigrator(spark: SparkSession) extends Logging {
 
+  /**
+   * Migrate state being written as format version 1 to format version 2.
+   *
+   * @param checkpointRoot the root path of existing checkpoint
+   * @param newCheckpointRoot the root path savepoint with migrated state will be stored
+   * @param keySchema key schema of existing state
+   * @param valueSchema value schema of existing state
+   */
   def convertVersion1To2(
       checkpointRoot: Path,
       newCheckpointRoot: Path,

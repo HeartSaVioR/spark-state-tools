@@ -20,10 +20,16 @@ import scala.util.Try
 
 import org.apache.hadoop.fs.{FileStatus, Path, PathFilter}
 
-import org.apache.spark.sql.{HadoopPathUtil, SparkSession}
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.streaming.{CommitLog, OffsetSeqLog}
 import org.apache.spark.sql.execution.streaming.state.StateStoreId
+import org.apache.spark.sql.util.HadoopPathUtil
 
+/**
+ * This class enables retrieving
+ * [[org.apache.spark.sql.state.StateInformationInCheckpoint.StateInformation]]
+ * via reading checkpoint.
+ */
 class StateInformationInCheckpoint(spark: SparkSession) {
   import org.apache.spark.sql.state.StateInformationInCheckpoint._
 

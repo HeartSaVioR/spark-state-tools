@@ -18,12 +18,29 @@ package org.apache.spark.sql.checkpoint
 
 import org.apache.hadoop.fs.{FileUtil, Path}
 
-import org.apache.spark.sql.HadoopPathUtil
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.streaming.{CommitLog, OffsetSeqLog, OffsetSeqMetadata}
+import org.apache.spark.sql.util.HadoopPathUtil
 
+/**
+ * Providing features to deal with checkpoint, like creating savepoint.
+ */
 object CheckpointUtil {
 
+  /**
+   * Create savepoint from existing checkpoint.
+   * OffsetLog and CommitLog will be purged based on newLastBatchId.
+   * Use `additionalMetadataConf` to modify metadata configuration: you may want to modify it
+   * when rescaling state, or migrate state format version.
+   * e.g. when rescaling, pass Map(SQLConf.SHUFFLE_PARTITIONS.key -> newShufflePartitions.toString)
+   *
+   * @param sparkSession spark session
+   * @param checkpointRoot the root path of existing checkpoint
+   * @param newCheckpointRoot the root path of new savepoint - target directory should be empty
+   * @param newLastBatchId the new last batch ID - it needs to be one of committed batch ID
+   * @param additionalMetadataConf the configuration to add to existing metadata configuration
+   * @param excludeState whether to exclude state directory
+   */
   def createSavePoint(
       sparkSession: SparkSession,
       checkpointRoot: String,
