@@ -76,6 +76,7 @@ To read state from your existing query, you may want to provide state schema man
 
 ```scala
 // Here we assume 'spark' as SparkSession.
+// the query shouldn't have sink - you may need to get rid of writeStream part and pass DataFrame
 val schemaInfos = new StateSchemaExtractor(spark).extract(streamingQueryDf)
 // Here schemaInfos is `Seq[StateSchemaInfo]`, which you can extract keySchema,
 // and valueSchema and finally define state schema. Please refer "Manual schema"
@@ -97,6 +98,17 @@ val stateValueSchema = new StructType()
 val stateFormat = new StructType()
   .add("key", stateKeySchema)
   .add("value", stateValueSchema)
+```
+
+You can also combine both state operator information in state information and state schema via `StateStoreReaderOperatorParamExtractor`
+to get necessary parameters for state batch read:
+
+```scala
+// Here we assume 'spark' as SparkSession.
+val stateInfo = new StateInformationInCheckpoint(spark).gatherInformation(new Path(cpDir.getAbsolutePath))
+val schemaInfos = new StateSchemaExtractor(spark).extract(streamingQueryDf)
+val stateReadParams = StateStoreReaderOperatorParamExtractor.extract(stateInfo, schemaInfos)
+// from `stateReadParams` you can get last committed state version, operatorId, storeName, state schema per each (operatorId, storeName) group
 ```
 
 Then you can start your batch query like:
