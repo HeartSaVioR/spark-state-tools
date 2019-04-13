@@ -19,16 +19,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>org.apache</groupId>
-    <artifactId>apache</artifactId>
-    <version>18</version>
-  </parent>
   <groupId>net.heartsavior.spark</groupId>
-  <artifactId>spark-state-tool</artifactId>
+  <artifactId>spark-state-tools</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>jar</packaging>
-  <name>Spark State Tool</name>
+  <name>Spark State Tools</name>
+  <description>State tools for Apache Spark which lets you play with states in your structured streaming queries.</description>
+  <url>https://github.com/HeartSaVioR/spark-state-tools</url>
   <licenses>
     <license>
       <name>Apache 2.0 License</name>
@@ -37,9 +34,9 @@
     </license>
   </licenses>
   <scm>
-    <connection>scm:git:git@github.com:HeartSaVioR/spark-state-tools.git</connection>
-    <url>scm:git:git@github.com:HeartSaVioR/spark-state-tools.git</url>
-    <tag>HEAD</tag>
+    <connection>scm:git:git:git@github.com:HeartSaVioR/spark-state-tools.git</connection>
+    <url>https://github.com/HeartSaVioR/spark-state-tools</url>
+    <developerConnection>scm:git:git@github.com:HeartSaVioR/spark-state-tools.git</developerConnection>
   </scm>
   <developers>
     <developer>
@@ -50,8 +47,18 @@
   </developers>
   <issueManagement>
     <system>Github Issue</system>
-    <url>https://github.com/HeartSaVioR/spark-state-tool/issues</url>
+    <url>https://github.com/HeartSaVioR/spark-state-tools/issues</url>
   </issueManagement>
+  <distributionManagement>
+    <snapshotRepository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
+    <repository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    </repository>
+  </distributionManagement>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -199,6 +206,20 @@
         </plugin>
 
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>3.0.1</version>
+          <executions>
+            <execution>
+              <id>attach-sources</id>
+              <goals>
+                <goal>jar-no-fork</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+
+        <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>scala-maven-plugin</artifactId>
           <version>3.2.2</version>
@@ -207,6 +228,18 @@
               <goals>
                 <goal>compile</goal>
                 <goal>testCompile</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>attach-javadocs</id>
+              <goals>
+                <goal>doc-jar</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>attach-sources</id>
+              <goals>
+                <goal>add-source</goal>
               </goals>
             </execution>
           </executions>
@@ -301,7 +334,6 @@
             </execution>
           </executions>
         </plugin>
-
       </plugins>
     </pluginManagement>
 
@@ -441,6 +473,50 @@
       </plugin>
 
       <plugin>
+        <groupId>org.sonatype.plugins</groupId>
+        <artifactId>nexus-staging-maven-plugin</artifactId>
+        <version>1.6.7</version>
+        <extensions>true</extensions>
+        <configuration>
+          <serverId>ossrh</serverId>
+          <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+          <autoReleaseAfterClose>true</autoReleaseAfterClose>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <!-- GPG signing -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-gpg-plugin</artifactId>
+        <version>1.6</version>
+        <executions>
+          <execution>
+            <id>sign-artifacts</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>sign</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>2.5.3</version>
+        <configuration>
+          <autoVersionSubmodules>true</autoVersionSubmodules>
+          <useReleaseProfile>false</useReleaseProfile>
+          <goals>deploy</goals>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+      </plugin>
+
+      <plugin>
         <groupId>org.scoverage</groupId>
         <artifactId>scoverage-maven-plugin</artifactId>
         <version>${scoverage.plugin.version}</version>
@@ -450,21 +526,4 @@
       </plugin>
     </plugins>
   </build>
-
-  <profiles>
-
-    <profile>
-      <id>integration-test</id>
-      <activation>
-        <property>
-          <name>integration-test</name>
-        </property>
-      </activation>
-      <properties>
-        <integration.test.enabled>true</integration.test.enabled>
-      </properties>
-    </profile>
-
-  </profiles>
-
 </project>
