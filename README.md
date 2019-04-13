@@ -35,9 +35,35 @@ Actually it can be possible, but state store provider in running query can purge
 
 Spark 2.4.x is supported: it only means you should link Spark 2.4.x when using this tool. That state formats across the Spark 2.x versions are supported.
 
-## How to use
+The project doesn't support cross-scala versions: Scala 2.11.x is supported only.
 
-FIXME: Adding artifact to your project will be described here when the artifact is published to Maven central.
+## Pulling artifacts
+
+You may use this library in your applications with the following dependency information:
+
+```
+groupId: net.heartsavior.spark
+artifactId: spark-state-tools
+```
+
+You are encouraged to always use latest version which is compatible to your Apache Spark version.
+
+e.g. For maven:
+
+```
+<dependency>
+  <groupId>net.heartsavior.spark</groupId>
+  <artifactId>spark-state-tools</artifactId>
+  <version>0.2.0</version>
+</dependency>
+```
+
+For other dependency managements, you can refer below page to get the guide:
+
+https://search.maven.org/artifact/net.heartsavior.spark/spark-state-tools/
+
+
+## How to use
 
 First of all, you may want to get state and last batch information to provide them as parameters.
 You can get it from `StateInformationInCheckpoint`, whether calling from your codebase or running with `spark-submit`.
