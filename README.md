@@ -45,7 +45,7 @@ Here we assume you have artifact jar of spark-state-tool and you want to run it 
 
 ```text
 <spark_path>/bin/spark-submit --master "local[*]" \
---class org.apache.spark.sql.state.StateInformationInCheckpoint \
+--class net.heartsavior.spark.sql.state.StateInformationInCheckpoint \
 spark-state-tool-0.0.1-SNAPSHOT.jar <checkpoint_root_path>
 ```
 
