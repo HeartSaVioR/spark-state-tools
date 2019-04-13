@@ -21,7 +21,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>net.heartsavior.spark</groupId>
   <artifactId>spark-state-tools</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.3.0-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>Spark State Tools</name>
   <description>State tools for Apache Spark which lets you play with states in your structured streaming queries.</description>
