@@ -257,7 +257,7 @@ val migrator = new FlatMapGroupsWithStateMigrator(spark)
 migrator.convertVersion1To2(oldCpPath, newCpPath, stateKeySchema, stateValueSchema)
 ```
 
-Please refer the [test codes](https://github.com/HeartSaVioR/spark-state-tool/tree/master/src/test/scala/org/apache/spark/sql/state) to see more examples on how to use.
+Please refer the [test codes](https://github.com/HeartSaVioR/spark-state-tools/tree/master/src/test/scala/net/heartsavior/spark/sql/state) to see more examples on how to use.
 
 ## License
 
