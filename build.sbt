@@ -2,7 +2,7 @@ lazy val scala212 = "2.12.10"
 lazy val scala211 = "2.11.12"
 lazy val supportedScalaVersions = List(scala212, scala211)
 
-scalaVersion := scala212
+scalaVersion := scala211
 crossScalaVersions := supportedScalaVersions
 
 name := "spark-state-tools"
