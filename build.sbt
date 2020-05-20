@@ -36,7 +36,6 @@ javacOptions ++= Seq(
 )
 
 val sparkVersion = "2.4.0"
-val scalatestVersion = "3.0.3"
 
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
