@@ -130,4 +130,4 @@ publishTo := {
 
 scalastyleConfig := file("scalastyle-config.xml")
 
-coverageEnabled := true
+coverageEnabled in Test := true
