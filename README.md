@@ -35,7 +35,7 @@ Actually it can be possible, but state store provider in running query can purge
 
 Spark 2.4.x is supported: it only means you should link Spark 2.4.x when using this tool. That state formats across the Spark 2.x versions are supported.
 
-The project doesn't support cross-scala versions: Scala 2.11.x is supported only.
+The project provides cross-compile for Scala 2.11 and 2.12 (thanks @redsk!); please pick the right artifact for your Scala version.
 
 ## Pulling artifacts
 
@@ -43,7 +43,7 @@ You may use this library in your applications with the following dependency info
 
 ```
 groupId: net.heartsavior.spark
-artifactId: spark-state-tools
+artifactId: spark-state-tools_<scala short version>
 ```
 
 You are encouraged to always use latest version which is compatible to your Apache Spark version.
@@ -53,14 +53,15 @@ e.g. For maven:
 ```
 <dependency>
   <groupId>net.heartsavior.spark</groupId>
-  <artifactId>spark-state-tools</artifactId>
-  <version>0.2.0</version>
+  <artifactId>spark-state-tools_<scala short version></artifactId>
+  <version>0.3.0</version>
 </dependency>
 ```
 
 For other dependency managements, you can refer below page to get the guide:
 
-https://search.maven.org/artifact/net.heartsavior.spark/spark-state-tools/
+https://search.maven.org/artifact/net.heartsavior.spark/spark-state-tools_2.11/
+https://search.maven.org/artifact/net.heartsavior.spark/spark-state-tools_2.12/
 
 
 ## How to use
@@ -261,7 +262,7 @@ Please refer the [test codes](https://github.com/HeartSaVioR/spark-state-tools/t
 
 ## License
 
-Copyright 2019 Jungtaek Lim "<kabhwan@gmail.com>"
+Copyright 2019-2020 Jungtaek Lim "<kabhwan.opensource@gmail.com>"
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
