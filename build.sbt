@@ -12,8 +12,6 @@ organization := "net.heartsavior.spark"
 description := "State tools for Apache Spark which lets you play with states " +
   "in your structured streaming queries."
 
-version := "0.3.0-SNAPSHOT"
-
 licenses += ("Apache 2.0 License", url("http://www.apache.org/licenses/LICENSE-2.0.html"))
 
 cancelable := true
