@@ -18,24 +18,18 @@
 
 package org.apache.spark.sql.hack
 
-import java.io.{ObjectInputStream, ObjectOutputStream}
-
-import org.apache.hadoop.conf.Configuration
-
-import org.apache.spark.util.Utils
+import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.util.SerializableConfiguration
 
 /**
- * NOTE: This is just a copy & paste of [[org.apache.spark.util.SerializableConfiguration]].
+ * This class was added because without it a NullPointerException was thrown by
+ * StateStore Providers as the hadoop configuration resulted to be null.
  */
-class SerializableConfiguration(@transient var value: Configuration) extends Serializable {
-  private def writeObject(out: ObjectOutputStream): Unit = Utils.tryOrIOException {
-    out.defaultWriteObject()
-    value.write(out)
-  }
-
-  private def readObject(in: ObjectInputStream): Unit = Utils.tryOrIOException {
-    value = new Configuration(false)
-    value.readFields(in)
+class SerializableConfigurationWrapper(session: SparkSession) extends Serializable {
+  val broadcastedConf: Broadcast[SerializableConfiguration] = {
+    val conf = new SerializableConfiguration(session.sparkContext.hadoopConfiguration)
+    session.sparkContext.broadcast(conf)
   }
 }
 // scalastyle:on header

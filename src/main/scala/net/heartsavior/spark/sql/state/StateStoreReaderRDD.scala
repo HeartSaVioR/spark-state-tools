@@ -27,7 +27,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow
 import org.apache.spark.sql.execution.streaming.state.{StateStore, StateStoreConf, StateStoreId, StateStoreProviderId}
-import org.apache.spark.sql.hack.SerializableConfiguration
+import org.apache.spark.sql.hack.SerializableConfigurationWrapper
 import org.apache.spark.sql.types.StructType
 
 class StateStorePartition(
@@ -52,8 +52,7 @@ class StateStoreReaderRDD(
   private val storeConf = new StateStoreConf(session.sessionState.conf)
 
   // A Hadoop Configuration can be about 10 KB, which is pretty big, so broadcast it
-  private val hadoopConfBroadcast = session.sparkContext.broadcast(
-    new SerializableConfiguration(session.sessionState.newHadoopConf()))
+  private val hadoopConfBroadcastWrapper = new SerializableConfigurationWrapper(session)
 
   override def compute(split: Partition, context: TaskContext): Iterator[(UnsafeRow, UnsafeRow)] = {
     split match {
@@ -64,7 +63,7 @@ class StateStoreReaderRDD(
 
         val store = StateStore.get(stateStoreProviderId, keySchema, valueSchema,
           indexOrdinal = None, version = batchId, storeConf = storeConf,
-          hadoopConf = hadoopConfBroadcast.value.value)
+          hadoopConf = hadoopConfBroadcastWrapper.broadcastedConf.value.value)
 
         val iter = store.iterator().map(pair => (pair.key, pair.value))
 
@@ -79,7 +78,8 @@ class StateStoreReaderRDD(
   }
 
   override protected def getPartitions: Array[Partition] = {
-    val fs = stateCheckpointPartitionsLocation.getFileSystem(hadoopConfBroadcast.value.value)
+    val fs = stateCheckpointPartitionsLocation.getFileSystem(
+      hadoopConfBroadcastWrapper.broadcastedConf.value.value)
     val partitions = fs.listStatus(stateCheckpointPartitionsLocation, new PathFilter() {
       override def accept(path: Path): Boolean = {
         fs.isDirectory(path) && Try(path.getName.toInt).isSuccess && path.getName.toInt >= 0
