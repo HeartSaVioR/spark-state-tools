@@ -22,7 +22,10 @@ import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.util.SerializableConfiguration
 
-
+/**
+ * This class was added because without it a NullPointerException was thrown by
+ * StateStore Providers as the hadoop configuration resulted to be null.
+ */
 class SerializableConfigurationWrapper(session: SparkSession) extends Serializable {
   val broadcastedConf: Broadcast[SerializableConfiguration] = {
     val conf = new SerializableConfiguration(session.sparkContext.hadoopConfiguration)
