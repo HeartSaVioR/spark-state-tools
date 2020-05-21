@@ -101,20 +101,19 @@ scalacOptions ++=
 // so turn them off for the console
 scalacOptions in(Compile, console) --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings")
 
-val gitHubId = "HeartSaVioR"
-
 scalacOptions in(Compile, doc) ++= baseDirectory.map {
   bd: File =>
     Seq[String](
       "-sourcepath", bd.getAbsolutePath,
-      "-doc-source-url", s"https://github.com/$gitHubId/$name/tree/master€{FILE_PATH}.scala"
+      "-doc-source-url", s"https://github.com/HeartSaVioR/spark-state-tools/tree/master€{FILE_PATH}.scala"
     )
 }.value
 
+homepage := Some(url("https://github.com/HeartSaVioR/spark-state-tools"))
 scmInfo := Some(
   ScmInfo(
-    url(s"https://github.com/$gitHubId/$name"),
-    s"git@github.com:$gitHubId/$name.git"
+    url(s"https://github.com/HeartSaVioR/spark-state-tools"),
+    s"git@github.com:HeartSaVioR/spark-state-tools.git"
   )
 )
 
@@ -127,6 +126,7 @@ publishTo := {
   else
     Some("releases"  at nexus + "service/local/staging/deploy/maven2")
 }
+publishMavenStyle := true
 
 scalastyleConfig := file("scalastyle-config.xml")
 
