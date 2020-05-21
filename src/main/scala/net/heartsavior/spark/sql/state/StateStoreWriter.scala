@@ -26,7 +26,7 @@ import org.apache.spark.sql.{Column, DataFrame, SparkSession}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow
 import org.apache.spark.sql.execution.streaming.state.{StateStore, StateStoreConf, StateStoreId, StateStoreProviderId}
-import org.apache.spark.sql.hack.SerializableConfiguration
+import org.apache.spark.sql.hack.SerializableConfigurationWrapper
 import org.apache.spark.sql.types.StructType
 
 class StateStoreWriter(
@@ -45,8 +45,7 @@ class StateStoreWriter(
   private val storeConf = new StateStoreConf(session.sessionState.conf)
 
   // A Hadoop Configuration can be about 10 KB, which is pretty big, so broadcast it
-  private val hadoopConfBroadcast = session.sparkContext.broadcast(
-    new SerializableConfiguration(session.sessionState.newHadoopConf()))
+  private val hadoopConfBroadcast = new SerializableConfigurationWrapper(session)
 
   def write(): Unit = {
     val resolvedCpLocation = {
@@ -86,12 +85,12 @@ object StateStoreWriter {
       keySchema: StructType,
       valueSchema: StructType,
       storeConf: StateStoreConf,
-      hadoopConfBroadcast: Broadcast[SerializableConfiguration],
+      hadoopConfBroadcast: SerializableConfigurationWrapper,
       queryId: UUID): Iterator[InternalRow] => Unit = iter => {
     val taskContext = TaskContext.get()
 
     val partIdx = taskContext.partitionId()
-    val hadoopConf = hadoopConfBroadcast.value.value
+    val hadoopConf = hadoopConfBroadcast.broadcastedConf.value.value
 
     val storeId = StateStoreId(resolvedCpLocation, operatorId, partIdx, storeName)
     val storeProviderId = StateStoreProviderId(storeId, queryId)
