@@ -35,8 +35,8 @@ class StateStoreRelation(
     stateCheckpointLocation: String,
     batchId: Int,
     operatorId: Int,
-    storeName: String = StateStoreId.DEFAULT_STORE_NAME,
-    sourceOptions: Map[String, String]) extends BaseRelation with TableScan with Logging {
+    storeName: String = StateStoreId.DEFAULT_STORE_NAME)
+  extends BaseRelation with TableScan with Logging {
 
   override def sqlContext: SQLContext = session.sqlContext
 
