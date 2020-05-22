@@ -54,7 +54,7 @@ e.g. For maven:
 <dependency>
   <groupId>net.heartsavior.spark</groupId>
   <artifactId>spark-state-tools_<scala short version></artifactId>
-  <version>0.3.0</version>
+  <version>0.4.0</version>
 </dependency>
 ```
 
