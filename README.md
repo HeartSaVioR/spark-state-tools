@@ -63,6 +63,8 @@ For other dependency managements, you can refer below page to get the guide:
 https://search.maven.org/artifact/net.heartsavior.spark/spark-state-tools_2.11/
 https://search.maven.org/artifact/net.heartsavior.spark/spark-state-tools_2.12/
 
+(NOTE: Use at least 0.4.0 or higher as previous versions have critical performance issue on reading path.)
+
 
 ## How to use
 
