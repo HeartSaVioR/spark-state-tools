@@ -39,7 +39,7 @@ class StateStorePartition(
 }
 
 /**
- * An RDD that reads (key, value) pair of state and provides these pairs.
+ * An RDD that reads (key, value) pairs of state and provides rows having columns (key, value).
  */
 class StateStoreReaderRDD(
     session: SparkSession,
