@@ -55,17 +55,10 @@ class StateStoreRelation(
 
     val rdd = new StateStoreReaderRDD(session, keySchema, valueSchema,
       resolvedCpLocation, batchId, operatorId, storeName)
-    rdd.map(StateStoreRelation.unifyStateRowPair(schema))
-  }
-}
-
-object StateStoreRelation {
-  def unifyStateRowPair(schema: StructType)(pair: (UnsafeRow, UnsafeRow)): Row = {
-    val row = new GenericInternalRow(2)
-    row.update(0, pair._1)
-    row.update(1, pair._2)
-
-    val encoder: ExpressionEncoder[Row] = RowEncoder(schema).resolveAndBind()
-    encoder.fromRow(row)
+    val encoder = RowEncoder(schema).resolveAndBind()
+    rdd.map { pair =>
+      val row = new GenericInternalRow(Array(pair._1, pair._2).asInstanceOf[Array[Any]])
+      encoder.fromRow(row)
+    }
   }
 }
