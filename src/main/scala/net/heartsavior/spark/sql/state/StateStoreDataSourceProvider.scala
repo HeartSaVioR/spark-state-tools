@@ -73,7 +73,7 @@ class StateStoreDataSourceProvider
 
     new StateStoreRelation(sqlContext.sparkSession, keySchema,
       valueSchema, checkpointLocation, version, operatorId,
-      storeName, parameters)
+      storeName)
   }
 
   override def createRelation(

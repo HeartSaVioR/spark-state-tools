@@ -52,7 +52,7 @@ class StateStoreWriter(
       val checkpointPath = new Path(stateCheckpointLocation)
       val fs = checkpointPath.getFileSystem(session.sessionState.newHadoopConf())
       if (fs.exists(checkpointPath)) {
-        throw new IllegalStateException(s"Checkpoint location should not be exist. " +
+        throw new IllegalStateException(s"Checkpoint location should not exist. " +
           s"Path: $checkpointPath")
       }
       fs.mkdirs(checkpointPath)

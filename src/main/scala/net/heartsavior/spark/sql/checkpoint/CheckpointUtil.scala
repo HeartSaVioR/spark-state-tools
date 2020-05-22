@@ -76,7 +76,7 @@ object CheckpointUtil {
     val offsetLog = new OffsetSeqLog(sparkSession, new Path(dst, "offsets").toString)
     val logForBatch = offsetLog.get(newLastBatchId) match {
       case Some(log) => log
-      case None => throw new IllegalStateException("offset log for batch should be exist")
+      case None => throw new IllegalStateException("offset log for batch should exist")
     }
 
     val newMetadata = logForBatch.metadata match {

@@ -16,13 +16,12 @@
 
 package net.heartsavior.spark.sql.state
 
+import net.heartsavior.spark.sql.util.SchemaUtil
 import org.apache.hadoop.fs.Path
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Row, SparkSession, SQLContext}
-import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
-import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, UnsafeRow}
 import org.apache.spark.sql.execution.streaming.state.StateStoreId
 import org.apache.spark.sql.hack.SparkSqlHack
 import org.apache.spark.sql.sources.{BaseRelation, TableScan}
@@ -36,14 +35,12 @@ class StateStoreRelation(
     stateCheckpointLocation: String,
     batchId: Int,
     operatorId: Int,
-    storeName: String = StateStoreId.DEFAULT_STORE_NAME,
-    sourceOptions: Map[String, String]) extends BaseRelation with TableScan with Logging {
+    storeName: String = StateStoreId.DEFAULT_STORE_NAME)
+  extends BaseRelation with TableScan with Logging {
 
   override def sqlContext: SQLContext = session.sqlContext
 
-  override def schema: StructType = new StructType()
-    .add("key", StructType(keySchema.fields), nullable = false)
-    .add("value", StructType(valueSchema.fields), nullable = false)
+  override def schema: StructType = SchemaUtil.keyValuePairSchema(keySchema, valueSchema)
 
   override def buildScan(): RDD[Row] = {
     val resolvedCpLocation = {
@@ -53,19 +50,7 @@ class StateStoreRelation(
       checkpointPath.makeQualified(fs.getUri, fs.getWorkingDirectory).toUri.toString
     }
 
-    val rdd = new StateStoreReaderRDD(session, keySchema, valueSchema,
+    new StateStoreReaderRDD(session, keySchema, valueSchema,
       resolvedCpLocation, batchId, operatorId, storeName)
-    rdd.map(StateStoreRelation.unifyStateRowPair(schema))
-  }
-}
-
-object StateStoreRelation {
-  def unifyStateRowPair(schema: StructType)(pair: (UnsafeRow, UnsafeRow)): Row = {
-    val row = new GenericInternalRow(2)
-    row.update(0, pair._1)
-    row.update(1, pair._2)
-
-    val encoder: ExpressionEncoder[Row] = RowEncoder(schema).resolveAndBind()
-    encoder.fromRow(row)
   }
 }

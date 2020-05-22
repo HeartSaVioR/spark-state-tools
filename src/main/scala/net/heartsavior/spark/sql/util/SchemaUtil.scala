@@ -23,4 +23,9 @@ object SchemaUtil {
   def getSchemaAsDataType(schema: StructType, fieldName: String): DataType = {
     schema(SparkSqlHack.getFieldIndex(schema, fieldName).get).dataType
   }
+
+  def keyValuePairSchema(keySchema: StructType, valueSchema: StructType): StructType =
+    new StructType()
+      .add("key", StructType(keySchema.fields), nullable = false)
+      .add("value", StructType(valueSchema.fields), nullable = false)
 }

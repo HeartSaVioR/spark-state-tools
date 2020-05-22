@@ -20,12 +20,14 @@ import java.util.UUID
 
 import scala.util.Try
 
+import net.heartsavior.spark.sql.util.SchemaUtil
 import org.apache.hadoop.fs.{Path, PathFilter}
 
 import org.apache.spark.{Partition, TaskContext}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow
+import org.apache.spark.sql.{Row, SparkSession}
+import org.apache.spark.sql.catalyst.encoders.RowEncoder
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.execution.streaming.state.{StateStore, StateStoreConf, StateStoreId, StateStoreProviderId}
 import org.apache.spark.sql.hack.SerializableConfigurationWrapper
 import org.apache.spark.sql.types.StructType
@@ -37,7 +39,7 @@ class StateStorePartition(
 }
 
 /**
- * An RDD that reads (key, value) pair of state and provides these pairs.
+ * An RDD that reads (key, value) pairs of state and provides rows having columns (key, value).
  */
 class StateStoreReaderRDD(
     session: SparkSession,
@@ -47,14 +49,14 @@ class StateStoreReaderRDD(
     batchId: Long,
     operatorId: Long,
     storeName: String)
-  extends RDD[(UnsafeRow, UnsafeRow)](session.sparkContext, Nil) {
+  extends RDD[Row](session.sparkContext, Nil) {
 
   private val storeConf = new StateStoreConf(session.sessionState.conf)
 
   // A Hadoop Configuration can be about 10 KB, which is pretty big, so broadcast it
   private val hadoopConfBroadcastWrapper = new SerializableConfigurationWrapper(session)
 
-  override def compute(split: Partition, context: TaskContext): Iterator[(UnsafeRow, UnsafeRow)] = {
+  override def compute(split: Partition, context: TaskContext): Iterator[Row] = {
     split match {
       case p: StateStorePartition =>
         val stateStoreId = StateStoreId(stateCheckpointRootLocation, operatorId,
@@ -65,7 +67,12 @@ class StateStoreReaderRDD(
           indexOrdinal = None, version = batchId, storeConf = storeConf,
           hadoopConf = hadoopConfBroadcastWrapper.broadcastedConf.value.value)
 
-        val iter = store.iterator().map(pair => (pair.key, pair.value))
+        val encoder = RowEncoder(SchemaUtil.keyValuePairSchema(keySchema, valueSchema))
+          .resolveAndBind()
+        val iter = store.iterator().map { pair =>
+          val row = new GenericInternalRow(Array(pair.key, pair.value).asInstanceOf[Array[Any]])
+          encoder.fromRow(row)
+        }
 
         // close state store provider after using
         StateStore.unload(stateStoreProviderId)
