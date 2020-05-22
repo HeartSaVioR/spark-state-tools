@@ -40,7 +40,7 @@ class StateStoreRelation(
 
   override def sqlContext: SQLContext = session.sqlContext
 
-  override def schema: StructType = SchemaUtil.schema(keySchema, valueSchema)
+  override def schema: StructType = SchemaUtil.keyValuePairSchema(keySchema, valueSchema)
 
   override def buildScan(): RDD[Row] = {
     val resolvedCpLocation = {

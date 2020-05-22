@@ -67,7 +67,8 @@ class StateStoreReaderRDD(
           indexOrdinal = None, version = batchId, storeConf = storeConf,
           hadoopConf = hadoopConfBroadcastWrapper.broadcastedConf.value.value)
 
-        val encoder = RowEncoder(SchemaUtil.schema(keySchema, valueSchema)).resolveAndBind()
+        val encoder = RowEncoder(SchemaUtil.keyValuePairSchema(keySchema, valueSchema))
+          .resolveAndBind()
         val iter = store.iterator().map { pair =>
           val row = new GenericInternalRow(Array(pair.key, pair.value).asInstanceOf[Array[Any]])
           encoder.fromRow(row)

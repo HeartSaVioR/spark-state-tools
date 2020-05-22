@@ -24,7 +24,8 @@ object SchemaUtil {
     schema(SparkSqlHack.getFieldIndex(schema, fieldName).get).dataType
   }
 
-  def schema(keySchema: StructType, valueSchema: StructType): StructType = new StructType()
-    .add("key", StructType(keySchema.fields), nullable = false)
-    .add("value", StructType(valueSchema.fields), nullable = false)
+  def keyValuePairSchema(keySchema: StructType, valueSchema: StructType): StructType =
+    new StructType()
+      .add("key", StructType(keySchema.fields), nullable = false)
+      .add("value", StructType(valueSchema.fields), nullable = false)
 }
