@@ -16,13 +16,12 @@
 
 package net.heartsavior.spark.sql.state
 
+import net.heartsavior.spark.sql.util.SchemaUtil
 import org.apache.hadoop.fs.Path
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Row, SparkSession, SQLContext}
-import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
-import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, UnsafeRow}
 import org.apache.spark.sql.execution.streaming.state.StateStoreId
 import org.apache.spark.sql.hack.SparkSqlHack
 import org.apache.spark.sql.sources.{BaseRelation, TableScan}
@@ -41,9 +40,7 @@ class StateStoreRelation(
 
   override def sqlContext: SQLContext = session.sqlContext
 
-  override def schema: StructType = new StructType()
-    .add("key", StructType(keySchema.fields), nullable = false)
-    .add("value", StructType(valueSchema.fields), nullable = false)
+  override def schema: StructType = SchemaUtil.schema(keySchema, valueSchema)
 
   override def buildScan(): RDD[Row] = {
     val resolvedCpLocation = {
@@ -53,12 +50,7 @@ class StateStoreRelation(
       checkpointPath.makeQualified(fs.getUri, fs.getWorkingDirectory).toUri.toString
     }
 
-    val rdd = new StateStoreReaderRDD(session, keySchema, valueSchema,
+    new StateStoreReaderRDD(session, keySchema, valueSchema,
       resolvedCpLocation, batchId, operatorId, storeName)
-    val encoder = RowEncoder(schema).resolveAndBind()
-    rdd.map { pair =>
-      val row = new GenericInternalRow(Array(pair._1, pair._2).asInstanceOf[Array[Any]])
-      encoder.fromRow(row)
-    }
   }
 }
