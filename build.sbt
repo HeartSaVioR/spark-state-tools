@@ -125,6 +125,24 @@ publishTo := {
     Some("releases"  at nexus + "service/local/staging/deploy/maven2")
 }
 publishMavenStyle := true
+releasePublishArtifactsAction := PgpKeys.publishSigned.value
+
+// don't use sbt-release's cross facility
+import ReleaseTransformations._
+releaseCrossBuild := false
+releaseProcess := Seq[ReleaseStep](
+  checkSnapshotDependencies,
+  inquireVersions,
+  runClean,
+  releaseStepCommandAndRemaining("+test"),
+  setReleaseVersion,
+  commitReleaseVersion,
+  tagRelease,
+  releaseStepCommandAndRemaining("+publishSigned"),
+  setNextVersion,
+  commitNextVersion,
+  pushChanges
+)
 
 scalastyleConfig := file("scalastyle-config.xml")
 
