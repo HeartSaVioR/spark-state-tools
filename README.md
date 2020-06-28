@@ -37,6 +37,10 @@ Spark 2.4.x is supported: it only means you should link Spark 2.4.x when using t
 
 The project provides cross-compile for Scala 2.11 and 2.12 (thanks [@redsk](https://github.com/redsk)!); please pick the right artifact for your Scala version.
 
+Spark version | Scala versions | artifact version
+------------- | -------------- | ----------------
+2.4.x         | 2.11 / 2.12    | 0.5.0-spark-2.4
+
 ## Pulling artifacts
 
 You may use this library in your applications with the following dependency information:
@@ -50,11 +54,13 @@ You are encouraged to always use latest version which is compatible to your Apac
 
 e.g. For maven:
 
+(Please replace `{{...}}` with content in above matrix.)
+
 ```
 <dependency>
   <groupId>net.heartsavior.spark</groupId>
-  <artifactId>spark-state-tools_<scala short version></artifactId>
-  <version>0.4.0</version>
+  <artifactId>spark-state-tool_{{scala_version}}</artifactId>
+  <version>{{artifact_version}}</version>
 </dependency>
 ```
 
