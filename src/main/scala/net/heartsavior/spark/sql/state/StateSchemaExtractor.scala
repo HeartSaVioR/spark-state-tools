@@ -41,7 +41,7 @@ class StateSchemaExtractor(spark: SparkSession) extends Logging {
 
     val queryExecution = new IncrementalExecution(spark, SparkSqlHack.logicalPlan(query),
       OutputMode.Update(),
-      "<unknown>", UUID.randomUUID(), 0, OffsetSeqMetadata(0, 0))
+      "<unknown>", UUID.randomUUID(), UUID.randomUUID(), 0, OffsetSeqMetadata(0, 0))
 
     // TODO: handle Streaming Join (if possible), etc.
     queryExecution.executedPlan.collect {

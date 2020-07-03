@@ -69,9 +69,10 @@ class StateStoreReaderRDD(
 
         val encoder = RowEncoder(SchemaUtil.keyValuePairSchema(keySchema, valueSchema))
           .resolveAndBind()
+        val fromRow = encoder.createDeserializer()
         val iter = store.iterator().map { pair =>
           val row = new GenericInternalRow(Array(pair.key, pair.value).asInstanceOf[Array[Any]])
-          encoder.fromRow(row)
+          fromRow(row)
         }
 
         // close state store provider after using

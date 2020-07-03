@@ -1,8 +1,7 @@
 lazy val scala212 = "2.12.10"
-lazy val scala211 = "2.11.12"
-lazy val supportedScalaVersions = List(scala212, scala211)
+lazy val supportedScalaVersions = List(scala212)
 
-scalaVersion := scala211
+scalaVersion := scala212
 crossScalaVersions := supportedScalaVersions
 
 name := "spark-state-tools"
@@ -33,7 +32,7 @@ javacOptions ++= Seq(
   "-g:vars"
 )
 
-val sparkVersion = "2.4.0"
+val sparkVersion = "3.0.0"
 
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
