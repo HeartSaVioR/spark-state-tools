@@ -33,13 +33,14 @@ Actually it can be possible, but state store provider in running query can purge
 
 ## Supported versions
 
-Spark 2.4.x is supported: it only means you should link Spark 2.4.x when using this tool. That state formats across the Spark 2.x versions are supported.
+Both Spark 3.0.x and 2.4.x is supported: it only means you should use these versions when using this project.
 
 The project provides cross-compile for Scala 2.11 and 2.12 (thanks [@redsk](https://github.com/redsk)!); please pick the right artifact for your Scala version.
 
 Spark version | Scala versions | artifact version
 ------------- | -------------- | ----------------
 2.4.x         | 2.11 / 2.12    | 0.5.0-spark-2.4
+3.0.x         | 2.12           | 0.5.0-spark-3.0
 
 ## Pulling artifacts
 
